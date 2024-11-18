@@ -41,3 +41,4 @@ class ConfigLoader:
     def get_events_config() -> dict:
         """이벤트 관련 설정을 반환합니다."""
         return GAME_CONFIG['events']
+    
