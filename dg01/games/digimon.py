@@ -1,6 +1,7 @@
 from discord.ext import commands
 
-from game_error import GameError
+from dg01.games.base import GameLogic
+from dg01.errors import GameError
 
 
 class DigimonCog(commands.Cog):
@@ -31,11 +32,6 @@ class DigimonCog(commands.Cog):
     @commands.command(name="치료")
     async def cure(self, ctx):
         await ctx.send('치료 치료')
-
-
-class GameLogic:
-    def __init__(self):
-        pass
 
 
 class DigimonLogic(GameLogic):
