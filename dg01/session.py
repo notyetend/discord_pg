@@ -5,23 +5,34 @@ from discord.ext import commands
 
 from dg01.errors import setup_logger, GameError, GameCriticalError, InvalidActionError
 from dg01.events import EventBus
-from dg01.states import GameType, GameState
+from dg01.const import GameType, GameState
 from dg01.games.base import GameLogic
-from dg01.games.digimon import DigimonLogic
+from dg01.games.digimon.logic import DigimonLogic, DigimonCog
+from dg01.data import GameDataManager
 
 
 logger = setup_logger(__name__)
 
 
 class GameSession:
-    def __init__(self, user_id: int, event_bus: EventBus, game_type: GameType):
+    def __init__(self, user_id: int, channel_id: int, event_bus: EventBus, game_type: GameType):
         self.user_id = user_id
+        self.channel_id = channel_id
         self.event_bus = event_bus
         self.game_type = game_type
         self.game_logic = self.create_game_logic(game_type)
+        self.data_manager = GameDataManager()
         self.state = GameState.WAITING
-        self.channel_id: Optional[int] = None
         self.tick_rate = 1.0   
+
+    def get_user_game_data(self, user_id: int, channel_id: int) -> dict:
+        return self.data_manager.get_user_data(user_id, channel_id)
+        
+    def save_user_game_data(self, user_id: int, data: dict) -> bool:
+        return self.data_manager.save_user_data(user_id, data)
+        
+    def update_last_played(self, user_id: int) -> None:
+        self.data_manager.update_last_played(user_id)
 
     def create_game_logic(self, game_type: GameType) -> GameLogic:
         if game_type == GameType.DIGIMON:

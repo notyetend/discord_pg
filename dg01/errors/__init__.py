@@ -18,6 +18,7 @@ def setup_logger(name: str) -> logging.Logger:
     Returns:
         logging.Logger: 설정된 로거 객체
     """
+    
     # 로거 생성
     logger = logging.getLogger(name)
     
@@ -28,7 +29,7 @@ def setup_logger(name: str) -> logging.Logger:
     logger.setLevel(logging.DEBUG)
     
     # 로그 디렉토리 생성
-    log_dir = Path('logs')
+    log_dir = Path('__logs')
     log_dir.mkdir(exist_ok=True)
     
     # 포맷터 생성 - 모듈 이름을 포함하도록 설정
@@ -39,7 +40,7 @@ def setup_logger(name: str) -> logging.Logger:
     
     # 공용 파일 핸들러 설정
     file_handler = RotatingFileHandler(
-        'logs/game_errors.log',
+        f'{log_dir}/game_errors.log',
         maxBytes=1024 * 1024 * 5,  # 5MB
         backupCount=5,
         encoding='utf-8'

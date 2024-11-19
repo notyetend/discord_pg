@@ -6,15 +6,19 @@ from discord.ext import commands
 
 from dg01.session import GameSession
 from dg01.events import EventBus
-from dg01.errors import GameError
-from dg01.states import GameType
-from dg01.games.digimon import DigimonCog, DigimonLogic
+from dg01.errors import setup_logger, GameError
+from dg01.const import GameType
+from dg01.games.digimon.logic import DigimonCog
+from dg01.data import GameDataManager
+
+
+logger = setup_logger(__name__)
 
 
 class GameManager:
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.sessions: Dict[int, GameSession] = {}
+        self.sessions: Dict[int, GameSession] = {}  # user_id: GameSession
 
         self.event_bus = EventBus()
         self.setup_event_handlers()
@@ -22,13 +26,12 @@ class GameManager:
     def setup_event_handlers(self):
         self.event_bus.subscribe("game_started", self.handle_game_started)
         self.event_bus.subscribe("game_error", self.handle_game_error)
-    
+
     async def create_game(self, user_id: int, channel_id: int, game_type: GameType) -> GameSession:
         if user_id in self.sessions:
             return GameError("You already have an active game")
         else:
-            session = GameSession(user_id=user_id, event_bus=self.event_bus, game_type=game_type)
-            session.channel_id = channel_id
+            session = GameSession(user_id=user_id, channel_id=channel_id, event_bus=self.event_bus, game_type=game_type)
             self.sessions[user_id] = session
 
             message = await self.send_game_message(channel_id)
@@ -40,31 +43,40 @@ class GameManager:
                 raise GameError(f"Unknown game type for cog: {game_type}")
             
             return session
+            
+    async def end_game(self, user_id: int, game_type: GameType) -> bool:
+        """
+        특정 사용자의 게임 세션을 종료합니다.
         
-    async def end_game(self, channel_id: int) -> bool:
+        Args:
+            user_id (int): 게임을 종료할 사용자의 ID
+            game_type (GameType): 종료할 게임의 타입
+            
+        Returns:
+            bool: 게임이 정상적으로 종료되면 True, 실행 중인 게임을 찾지 못하면 False
         """
         try:
-            if channel_id not in self.active_games:
+            # 사용자의 세션 찾기
+            session = self.sessions.get(user_id)
+            if not session or session.game_type != game_type:
                 return False
 
-            game_type = self.active_games[channel_id]
-            del self.active_games[channel_id]
-
-            # 해당 게임 타입이 다른 채널에서 사용되고 있는지 확인
-            if game_type not in [game for game in self.active_games.values()]:
-                # 아무 채널에서도 사용되지 않는다면 Cog 제거
-                if game_type in self.game_cogs:
-                    await self.bot.remove_cog(self.game_cogs[game_type].qualified_name)
-                    del self.game_cogs[game_type]
-
+            # 세션 정리
+            await session.cleanup()
+            
+            # 게임 Cog 제거
+            if game_type == GameType.DIGIMON:
+                await self.bot.remove_cog(DigimonCog(self.bot).qualified_name)
+                
+            # 활성 세션 목록에서 제거
+            del self.sessions[user_id]
+            
             return True
-
+            
         except Exception as e:
-            print(f"Error ending game: {e}")
+            logger.error(f"게임 종료 중 오류 발생: {str(e)}")
             return False
-        """
-        pass
-    
+        
     async def handle_game_started(self, data: dict):
         """게임 시작 이벤트 처리"""
         channel = self.bot.get_channel(data.get("channel_id"))
@@ -89,7 +101,7 @@ class GameManager:
         if command == "start":
             await session.start_game()
         else:
-            pass        
+            pass
 
     async def send_game_message(self, channel_id: int) -> discord.Message:
         """
