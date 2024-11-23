@@ -46,9 +46,9 @@ class GameDataManager:
     def save_user_data(self, user_id: int, data: dict) -> bool:
         """사용자의 게임 데이터를 저장합니다."""
         try:
-            user_data_file = self.data_dir / f'user_{user_id}.json'
+            user_data_file = f"{self.data_dir}/user_{user_id}.json"
             with open(user_data_file, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
+                json.dump(data, f, ensure_ascii=False, indent=4)
             return True
         except Exception as e:
             logger.error(f"데이터 저장 실패: {str(e)}")

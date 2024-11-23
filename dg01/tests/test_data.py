@@ -30,4 +30,8 @@ class TestData:
     def test_get_user_data(self, game_data_manager, user_id, channel_id, game_type):
         print(game_data_manager)
         assert game_data_manager.get_user_data(user_id, channel_id)
+
+    def save_user_data(self, game_manager, user_id, channel_id):
+        data = game_manager.get_user_data(user_id, channel_id)
+        assert game_manager(user_id, data)
         
