@@ -1,6 +1,6 @@
 import pytest
 import asyncio
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 from dg01.session import GameSession
 from dg01.events import EventBus
@@ -29,7 +29,7 @@ class TestGameSession:
     @pytest.fixture
     def game_session(self, user_id, channel_id, event_bus, game_type):
         game_session = GameSession(user_id, channel_id, event_bus, game_type)
-        game_session.game_logic = Mock()
+        game_session.game_logic = MagicMock()
         game_session.game_logic.update.return_value = ['=== dummy_event ===']
         game_session.tick_rate = 10
         game_session.message_id = None
@@ -100,7 +100,7 @@ class TestGameSession:
         에러가 발생하면 state값이 ERROR로 바뀌면서
         while self.state == GameState.PLAYING: 때문에 루프를 나가게 된다.
         """
-        game_session.game_logic = Mock()
+        game_session.game_logic = MagicMock()
         game_session.game_logic.update.side_effect = Exception("Error")
         game_session.tick_rate = 10
         game_session.message_id = None
@@ -122,7 +122,7 @@ class TestGameSession:
     @pytest.mark.asyncio
     async def test_cleanup(self, game_session):
         assert game_session.state == GameState.WAITING
-        game_session.game_logic = Mock()
+        game_session.game_logic = MagicMock()
         game_session.game_logic.update.return_value = ['=== dummy_event ===']
         game_session.tick_rate = 10
         game_session.message_id = None

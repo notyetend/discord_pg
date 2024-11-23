@@ -1,0 +1,16 @@
+[run]
+source = dg01
+omit = 
+    */tests/*
+    */migrations/*
+    setup.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+
+# pip install pytest-cov
+# pytest --cov=dg01 ./dg01/tests/
+# pytest --cov=dg01 --cov-report=html:./dg01/tests/coverage_report ./dg01/tests/

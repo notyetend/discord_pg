@@ -9,6 +9,7 @@ from typing import TypeVar, Generic
 class GameEventType(Enum):
     GAME_STARTED = "game_started"
     GAME_CLEANUP = "game_cleanup"
+    GAME_ERROR = "game_error"
 
 
 class GameEventData(ABC):
@@ -65,9 +66,21 @@ class GameEventDefaultData(GameEventData):
             self.created_at = asyncio.get_running_loop().time()
 
 
+@dataclass
+class GameEventErrorData(GameEventData):
+    error_message: str
+    channel_id: str
+    created_at: float = None
+    
+    def __post_init__(self):
+        if self.created_at is None:
+            self.created_at = asyncio.get_running_loop().time()
+
+
 EVENT_DATA_MAPPING: Dict[GameEventType, Type[GameEventData]] = {
     GameEventType.GAME_STARTED: GameEventDefaultData,
-    GameEventType.GAME_CLEANUP: GameEventDefaultData
+    GameEventType.GAME_CLEANUP: GameEventDefaultData,
+    GameEventType.GAME_ERROR: GameEventErrorData,
     # EventType.GAME_ENDED: GameEndedData,
     # EventType.PLAYER_MOVED: PlayerMovedData,
 }

@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from datetime import datetime, timezone
 import json
@@ -9,7 +10,7 @@ logger = setup_logger(__name__)
 
 
 class GameDataManager:
-    def __init__(self, data_dir: str = '__game_data'):
+    def __init__(self, data_dir: str = './__game_data'):
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(exist_ok=True)
         
@@ -29,13 +30,17 @@ class GameDataManager:
         }
         
         try:
-            user_data_file = self.data_dir / f'user_{user_id}.json'
-            if user_data_file.exists():
+            user_data_file = f"{self.data_dir}/user_{user_id}.json"
+            if os.path.exists(user_data_file):
                 with open(user_data_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
-            return default_data
+            else:
+                with open(user_data_file, 'w', encoding='utf-8') as f:
+                    json.dump(default_data, f, ensure_ascii=False, indent=4)
+                    return default_data
         except Exception as e:
             logger.error(f"데이터 로드 실패: {str(e)}")
+            raise e
             return default_data
             
     def save_user_data(self, user_id: int, data: dict) -> bool:

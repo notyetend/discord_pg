@@ -7,7 +7,7 @@ from discord.ext import commands
 from dg01.session import GameSession
 from dg01.events import EventBus
 from dg01.errors import setup_logger, GameError
-from dg01.const import GameType
+from dg01.const import GameType, GameEventType
 from dg01.games.digimon.cog import DigimonCog
 
 
@@ -23,8 +23,8 @@ class GameManager:
         self.setup_event_handlers()
     
     def setup_event_handlers(self):
-        self.event_bus.subscribe("game_started", self.handle_game_started)
-        self.event_bus.subscribe("game_error", self.handle_game_error)
+        self.event_bus.subscribe(GameEventType.GAME_STARTED, self.handle_game_started)
+        self.event_bus.subscribe(GameEventType.GAME_ERROR, self.handle_game_error)
 
     async def create_game(self, user_id: int, channel_id: int, game_type: GameType) -> GameSession:
         if user_id in self.sessions:
@@ -83,20 +83,21 @@ class GameManager:
         
     async def handle_game_started(self, data: dict):
         """게임 시작 이벤트 처리"""
-        channel = self.bot.get_channel(data.get("channel_id"))
+        channel = self.bot.get_channel(data.channel_id)
         if channel:
-            await channel.send(f"Game started by user {data['user_id']}")
+            await channel.send(f"Game started by user {data.user_id}")
         else:
             raise GameError("Failed to get channel.")
         
     async def handle_game_error(self, data: dict):
         """게임 에러 이벤트 처리"""
-        channel = self.bot.get_channel(data.get("channel_id"))
+        channel = self.bot.get_channel(data.channel_id)
         if channel:
-            await channel.send(f"Error {data['error_message']}")
+            await channel.send(f"Error {data.error_message}")
         else:
             raise GameError("Failed to get channel.")
 
+    """ # not used
     async def handle_command(self, ctx: commands.Context, command: str, *args):
         session = self.sessions.get(ctx.author.id)  # Changed from channel_id to author.id
         if not session:
@@ -106,6 +107,7 @@ class GameManager:
             await session.start_game()
         else:
             pass
+    """
 
     async def send_game_message(self, channel_id: int) -> discord.Message:
         """
