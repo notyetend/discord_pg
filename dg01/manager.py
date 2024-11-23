@@ -8,8 +8,7 @@ from dg01.session import GameSession
 from dg01.events import EventBus
 from dg01.errors import setup_logger, GameError
 from dg01.const import GameType
-from dg01.games.digimon.logic import DigimonCog
-from dg01.data import GameDataManager
+from dg01.games.digimon.cog import DigimonCog
 
 
 logger = setup_logger(__name__)
@@ -31,7 +30,12 @@ class GameManager:
         if user_id in self.sessions:
             return GameError("You already have an active game")
         else:
-            session = GameSession(user_id=user_id, channel_id=channel_id, event_bus=self.event_bus, game_type=game_type)
+            session = GameSession(
+                user_id=user_id, 
+                channel_id=channel_id, 
+                event_bus=self.event_bus, 
+                game_type=game_type
+            )
             self.sessions[user_id] = session
 
             message = await self.send_game_message(channel_id)

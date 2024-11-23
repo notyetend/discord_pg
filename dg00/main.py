@@ -1,8 +1,7 @@
 import discord
 import sys
 
-from dg00.utils.config_loader import ConfigLoader
-from dg00.config.config import GAME_CONFIG
+from dg00.config.config import GAME_CONFIG, ConfigLoader
 from dg00.message.bot import DigimonDiscordBot
 
 

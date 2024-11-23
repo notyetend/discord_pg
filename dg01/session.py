@@ -5,9 +5,10 @@ from discord.ext import commands
 
 from dg01.errors import setup_logger, GameError, GameCriticalError, InvalidActionError
 from dg01.events import EventBus
-from dg01.const import GameType, GameState
+from dg01.const import GameType, GameState, GameEventType, create_game_event
 from dg01.games.base import GameLogic
-from dg01.games.digimon.logic import DigimonLogic, DigimonCog
+from dg01.games.digimon.logic import DigimonLogic
+from dg01.games.digimon.cog import DigimonCog
 from dg01.data import GameDataManager
 
 
@@ -25,15 +26,6 @@ class GameSession:
         self.state = GameState.WAITING
         self.tick_rate = 1.0   
 
-    def get_user_game_data(self, user_id: int, channel_id: int) -> dict:
-        return self.data_manager.get_user_data(user_id, channel_id)
-        
-    def save_user_game_data(self, user_id: int, data: dict) -> bool:
-        return self.data_manager.save_user_data(user_id, data)
-        
-    def update_last_played(self, user_id: int) -> None:
-        self.data_manager.update_last_played(user_id)
-
     def create_game_logic(self, game_type: GameType) -> GameLogic:
         if game_type == GameType.DIGIMON:
             return DigimonLogic()
@@ -45,19 +37,21 @@ class GameSession:
             raise GameError("Game already started")
         
         self.state = GameState.PLAYING
-        self.last_update = asyncio.get_event_loop().time()
+        self.last_update = asyncio.get_running_loop().time()
         self.update_task = asyncio.create_task(self.update_loop())
         
-        await self.event_bus.publish("game_started", {
-            "user_id": self.user_id,
-            "channel_id": self.channel_id,
-            "game_type": self.game_type
-        })
+        game_event = create_game_event(
+            GameEventType.GAME_STARTED,
+            user_id=self.user_id,
+            channel_id=self.channel_id,
+            game_type=self.game_type
+        )
+        await self.event_bus.publish(game_event)
 
     async def update_loop(self):  # not used yet
         try:
             while self.state == GameState.PLAYING:
-                current_time = asyncio.get_event_loop().time()
+                current_time = asyncio.get_running_loop().time()
                 delta_time = current_time - self.last_update
                 
                 # 게임 로직 업데이트
@@ -73,12 +67,13 @@ class GameSession:
                 
                 # 다음 틱까지 대기
                 next_update = self.last_update + (1.0 / self.tick_rate)
-                sleep_time = max(0, next_update - asyncio.get_event_loop().time())
+                sleep_time = max(0, next_update - asyncio.get_running_loop().time())
                 await asyncio.sleep(sleep_time)
                 
         except asyncio.CancelledError:
             await self.cleanup()
         except Exception as e:
+            # raise e  # for test
             await self.handle_error(e)
     
     async def handle_event(self, event):
@@ -101,6 +96,7 @@ class GameSession:
                 self.update_task = None
 
             # 게임 종료 이벤트 발행
+            # create_game_event(GameEventType.GAME_CLEANUP, self)  # @@@
             await self.event_bus.publish("game_cleanup", {
                 "user_id": self.user_id,
                 "channel_id": self.channel_id,
@@ -132,7 +128,7 @@ class GameSession:
                 "error_type": type(error).__name__,
                 "error_message": str(error)
             }
-
+            print(error_info)
             # 에러 심각도 결정
             if isinstance(error, GameCriticalError):
                 severity = 'critical'
