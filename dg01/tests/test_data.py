@@ -1,14 +1,11 @@
 import pytest
+import pprint
 import asyncio
-from unittest.mock import MagicMock, AsyncMock
+import random
 
-from dg01.session import GameSession
-from dg01.events import EventBus
-from dg01.const import GameType, GameState, create_game_event, GameEvent, GameEventData, GameEventType
-from dg01.games.digimon.logic import DigimonLogic
-from dg01.errors import GameError
-from dg01.manager import GameManager
-from dg01.data import GameDataManager
+from dg01.games import GameType
+from dg01.manager_data import DataManager
+
 
 class TestData:
     @pytest.fixture
@@ -17,7 +14,7 @@ class TestData:
     
     @pytest.fixture
     def channel_id(self):
-        return 222
+        return random.randint(0, 1000)
 
     @pytest.fixture
     def game_type(self):
@@ -25,13 +22,23 @@ class TestData:
 
     @pytest.fixture
     def game_data_manager(self):
-        return GameDataManager()
+        return DataManager()
     
-    def test_get_user_data(self, game_data_manager, user_id, channel_id, game_type):
-        print(game_data_manager)
-        assert game_data_manager.get_user_data(user_id, channel_id)
+    def test_create_table_sql(self, game_data_manager):
+        print(f"""=== \n{game_data_manager.create_table_sql}\n===""")
 
-    def save_user_data(self, game_manager, user_id, channel_id):
-        data = game_manager.get_user_data(user_id, channel_id)
-        assert game_manager(user_id, data)
-        
+    def test_default_user_data(self, game_data_manager):
+        print(f"""=== \n{game_data_manager.default_user_data}\n===""")
+
+    @pytest.mark.asyncio
+    async def test_get_user_data(self, game_data_manager, user_id, game_type):
+        user_data = await game_data_manager.get_user_data(user_id)
+        pp = pprint.PrettyPrinter(indent=2, width=40)
+        pp.pprint(user_data)
+
+    @pytest.mark.asyncio
+    async def test_update_user_data(self, game_data_manager, user_id, channel_id):
+        data = await game_data_manager.get_user_data(user_id)
+        data['channel_id'] = channel_id
+        assert await game_data_manager.save_user_data(user_id, data)
+    

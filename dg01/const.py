@@ -68,8 +68,10 @@ class GameEventDefaultData(GameEventData):
 
 @dataclass
 class GameEventErrorData(GameEventData):
-    error_message: str
+    user_id: str
     channel_id: str
+    error_message: str
+    severity: str
     created_at: float = None
     
     def __post_init__(self):
@@ -120,13 +122,6 @@ def create_game_event(event_type: GameEventType, **data) -> GameEvent:
     data_class = EVENT_DATA_MAPPING[event_type]
     event_data = data_class(**data)
     return GameEvent[data_class](type=event_type, data=event_data)
-
-
-class GameType(Enum):
-    DIGIMON = "디지몬"
-    # POKEMON = "포켓몬"
-    # YUGIOH = "유희왕"
-    # 필요한 게임 타입 추가 가능
 
 
 class GameState(Enum):

@@ -1,8 +1,9 @@
 import pytest
 import asyncio
 
-from dg01.events import EventBus, GameEventType
-from dg01.const import create_game_event, GameType
+from dg01.event_bus import EventBus, GameEventType
+from dg01.const import create_game_event
+from dg01.games import GameType
 
 
 class TestEventBus:

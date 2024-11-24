@@ -4,11 +4,11 @@ from datetime import datetime, timedelta, timezone
 import discord
 from discord.ext import commands
 
+from dg01.games import GameType
 from dg01.session import GameSession
-from dg01.events import EventBus
+from dg01.event_bus import EventBus
 from dg01.errors import setup_logger, GameError
-from dg01.const import GameType, GameEventType
-from dg01.games.digimon.cog import DigimonCog
+from dg01.const import GameEventType
 
 
 logger = setup_logger(__name__)
@@ -41,11 +41,13 @@ class GameManager:
             message = await self.send_game_message(channel_id)
             session.message_id = message.id
             
+            """
             if game_type == GameType.DIGIMON:
                 await self.bot.add_cog(DigimonCog(self.bot))
             else:
                 raise GameError(f"Unknown game type for cog: {game_type}")
-            
+            """
+
             return session
             
     async def end_game(self, user_id: int, game_type: GameType) -> bool:
@@ -68,10 +70,12 @@ class GameManager:
             # 세션 정리
             await session.cleanup()
             
+            """
             # 게임 Cog 제거
             if game_type == GameType.DIGIMON:
                 await self.bot.remove_cog(DigimonCog(self.bot).qualified_name)
-                
+            """
+
             # 활성 세션 목록에서 제거
             del self.sessions[user_id]
             

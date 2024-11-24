@@ -1,21 +1,22 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from datetime import datetime, timezone
-from dg01.const import GameType
-from dg01.const import GameType, GameState
-from dg01.data import GameDataManager
+from dg01.games import GameType
+from dg01.const import GameState
+from dg01.games import GameType
+from dg01.manager_data import DataManager
 from dg01.errors import GameError
 from dg01.errors import setup_logger
 from dg01.errors import setup_logger, GameError
 from dg01.errors import setup_logger, GameError, GameCriticalError, InvalidActionError
-from dg01.events import EventBus
+from dg01.event_bus import EventBus
 from dg01.games.base import GameLogic
 from dg01.games.digimon import DigimonCog, DigimonLogic
 from dg01.games.digimon import DigimonLogic
-from dg01.games.digimon.cog import DigimonCog
-from dg01.games.digimon.config import GAME_CONFIG, get_next_stage, get_stage_config, get_random_message
-from dg01.games.digimon.logic import DigimonLogic
-from dg01.manager import GameManager
+from dg01.games.digimon.digimon_cog import DigimonCog
+from dg01.games.digimon.digimon_config import GAME_CONFIG, get_next_stage, get_stage_config, get_random_message
+from dg01.games.digimon.digimon_ import DigimonLogic
+from dg01.manager_game import GameManager
 from dg01.session import GameSession
 from discord.ext import commands
 from enum import Enum
@@ -38,21 +39,21 @@ import traceback
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from datetime import datetime, timezone
-from dg01.const import GameType
-from dg01.const import GameType, GameState
-from dg01.data import GameDataManager
+from dg01.games import GameType
+from dg01.const import GameState
+from dg01.manager_data import DataManager
 from dg01.errors import GameError
 from dg01.errors import setup_logger
 from dg01.errors import setup_logger, GameError
 from dg01.errors import setup_logger, GameError, GameCriticalError, InvalidActionError
-from dg01.events import EventBus
+from dg01.event_bus import EventBus
 from dg01.games.base import GameLogic
 from dg01.games.digimon import DigimonCog, DigimonLogic
 from dg01.games.digimon import DigimonLogic
-from dg01.games.digimon.cog import DigimonCog
-from dg01.games.digimon.config import GAME_CONFIG, get_next_stage, get_stage_config, get_random_message
-from dg01.games.digimon.logic import DigimonLogic
-from dg01.manager import GameManager
+from dg01.games.digimon.digimon_cog import DigimonCog
+from dg01.games.digimon.digimon_config import GAME_CONFIG, get_next_stage, get_stage_config, get_random_message
+from dg01.games.digimon.digimon_ import DigimonLogic
+from dg01.manager_game import GameManager
 from dg01.session import GameSession
 from discord.ext import commands
 from enum import Enum
@@ -74,17 +75,17 @@ import traceback
 # ===== merged_output.py =====
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from dg01.const import GameType
-from dg01.const import GameType, GameState
+from dg01.games import GameType
+from dg01.const import GameState
 from dg01.errors import GameError
 from dg01.errors import setup_logger
 from dg01.errors import setup_logger, GameError
 from dg01.errors import setup_logger, GameError, GameCriticalError, InvalidActionError
-from dg01.events import EventBus
+from dg01.event_bus import EventBus
 from dg01.games.base import GameLogic
 from dg01.games.digimon import DigimonCog, DigimonLogic
 from dg01.games.digimon import DigimonLogic
-from dg01.manager import GameManager
+from dg01.manager_game import GameManager
 from dg01.session import GameSession
 from discord.ext import commands
 from enum import Enum
@@ -105,17 +106,17 @@ import traceback
 # ===== merged_output.py =====
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from dg01.const import GameType
-from dg01.const import GameType, GameState
+from dg01.games import GameType
+from dg01.const import GameState
 from dg01.errors import GameError
 from dg01.errors import setup_logger
 from dg01.errors import setup_logger, GameError
 from dg01.errors import setup_logger, GameError, GameCriticalError, InvalidActionError
-from dg01.events import EventBus
+from dg01.event_bus import EventBus
 from dg01.games.base import GameLogic
 from dg01.games.digimon import DigimonCog, DigimonLogic
 from dg01.games.digimon import DigimonLogic
-from dg01.manager import GameManager
+from dg01.manager_game import GameManager
 from dg01.session import GameSession
 from discord.ext import commands
 from enum import Enum
@@ -136,16 +137,16 @@ import traceback
 # ===== merged_output.py =====
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from dg01.const import GameType
-from dg01.const import GameType, GameState
+from dg01.games import GameType
+from dg01.const import GameState
 from dg01.errors import GameError
 from dg01.errors import setup_logger
 from dg01.errors import setup_logger, GameError, GameCriticalError, InvalidActionError
-from dg01.events import EventBus
+from dg01.event_bus import EventBus
 from dg01.games.base import GameLogic
 from dg01.games.digimon import DigimonCog, DigimonLogic
 from dg01.games.digimon import DigimonLogic
-from dg01.manager import GameManager
+from dg01.manager_game import GameManager
 from dg01.session import GameSession
 from discord.ext import commands
 from enum import Enum
@@ -446,8 +447,8 @@ import discord
 from discord.ext import commands
 
 from dg01.errors import setup_logger
-from dg01.manager import GameManager
-from dg01.const import GameType
+from dg01.manager_game import GameManager
+from dg01.games import GameType
 
 
 logger = setup_logger(__name__)
@@ -516,9 +517,9 @@ import discord
 from discord.ext import commands
 
 from dg01.session import GameSession
-from dg01.events import EventBus
+from dg01.event_bus import EventBus
 from dg01.errors import GameError
-from dg01.const import GameType
+from dg01.games import GameType
 from dg01.games.digimon import DigimonCog, DigimonLogic
 
 
@@ -670,8 +671,8 @@ from typing import Optional
 from discord.ext import commands
 
 from dg01.errors import setup_logger, GameError, GameCriticalError, InvalidActionError
-from dg01.events import EventBus
-from dg01.const import GameType, GameState
+from dg01.event_bus import EventBus
+from dg01.const import GameState
 from dg01.games.base import GameLogic
 from dg01.games.digimon import DigimonLogic
 
@@ -1111,8 +1112,8 @@ import discord
 from discord.ext import commands
 
 from dg01.errors import setup_logger
-from dg01.manager import GameManager
-from dg01.const import GameType
+from dg01.manager_game import GameManager
+from dg01.games import GameType
 
 
 logger = setup_logger(__name__)
@@ -1181,9 +1182,9 @@ import discord
 from discord.ext import commands
 
 from dg01.session import GameSession
-from dg01.events import EventBus
+from dg01.event_bus import EventBus
 from dg01.errors import setup_logger, GameError
-from dg01.const import GameType
+from dg01.games import GameType
 from dg01.games.digimon import DigimonCog, DigimonLogic
 
 
@@ -1346,8 +1347,8 @@ from typing import Optional
 from discord.ext import commands
 
 from dg01.errors import setup_logger, GameError, GameCriticalError, InvalidActionError
-from dg01.events import EventBus
-from dg01.const import GameType, GameState
+from dg01.event_bus import EventBus
+from dg01.const import GameState
 from dg01.games.base import GameLogic
 from dg01.games.digimon import DigimonLogic
 
@@ -1787,8 +1788,8 @@ import discord
 from discord.ext import commands
 
 from dg01.errors import setup_logger
-from dg01.manager import GameManager
-from dg01.const import GameType
+from dg01.manager_game import GameManager
+from dg01.games import GameType
 
 
 logger = setup_logger(__name__)
@@ -1858,9 +1859,9 @@ import discord
 from discord.ext import commands
 
 from dg01.session import GameSession
-from dg01.events import EventBus
+from dg01.event_bus import EventBus
 from dg01.errors import setup_logger, GameError
-from dg01.const import GameType
+from dg01.games import GameType
 from dg01.games.digimon import DigimonCog, DigimonLogic
 
 
@@ -1994,8 +1995,8 @@ from typing import Optional
 from discord.ext import commands
 
 from dg01.errors import setup_logger, GameError, GameCriticalError, InvalidActionError
-from dg01.events import EventBus
-from dg01.const import GameType, GameState
+from dg01.event_bus import EventBus
+from dg01.const import GameState
 from dg01.games.base import GameLogic
 from dg01.games.digimon import DigimonLogic
 
@@ -2204,7 +2205,7 @@ from dg01.errors import setup_logger
 logger = setup_logger(__name__)
 
 
-class GameDataManager:
+class DataManager:
     def __init__(self, data_dir: str = '__game_data'):
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(exist_ok=True)
@@ -2655,7 +2656,7 @@ def get_evolution_quiz(stage: str) -> dict:
 # ===== logic.py =====
 from dg01.games.base import GameLogic
 from dg01.errors import setup_logger, GameError
-from dg01.games.digimon.config import GAME_CONFIG, get_next_stage, get_stage_config, get_random_message
+from dg01.games.digimon.digimon_config import GAME_CONFIG, get_next_stage, get_stage_config, get_random_message
 
 
 logger = setup_logger(__name__)
@@ -2674,8 +2675,8 @@ import discord
 from discord.ext import commands
 
 from dg01.errors import setup_logger
-from dg01.manager import GameManager
-from dg01.const import GameType
+from dg01.manager_game import GameManager
+from dg01.games import GameType
 
 
 logger = setup_logger(__name__)
@@ -2745,10 +2746,10 @@ import discord
 from discord.ext import commands
 
 from dg01.session import GameSession
-from dg01.events import EventBus
+from dg01.event_bus import EventBus
 from dg01.errors import setup_logger, GameError
-from dg01.const import GameType
-from dg01.games.digimon.cog import DigimonCog
+from dg01.games import GameType
+from dg01.games.digimon.digimon_cog import DigimonCog
 
 
 logger = setup_logger(__name__)
@@ -2915,12 +2916,12 @@ from typing import Optional
 from discord.ext import commands
 
 from dg01.errors import setup_logger, GameError, GameCriticalError, InvalidActionError
-from dg01.events import EventBus
-from dg01.const import GameType, GameState
+from dg01.event_bus import EventBus
+from dg01.const import GameState
 from dg01.games.base import GameLogic
-from dg01.games.digimon.logic import DigimonLogic
-from dg01.games.digimon.cog import DigimonCog
-from dg01.data import GameDataManager
+from dg01.games.digimon.digimon_ import DigimonLogic
+from dg01.games.digimon.digimon_cog import DigimonCog
+from dg01.manager_data import DataManager
 
 
 logger = setup_logger(__name__)
@@ -2933,7 +2934,7 @@ class GameSession:
         self.event_bus = event_bus
         self.game_type = game_type
         self.game_logic = self.create_game_logic(game_type)
-        self.data_manager = GameDataManager()
+        self.data_manager = DataManager()
         self.state = GameState.WAITING
         self.tick_rate = 1.0   
 
@@ -3128,7 +3129,7 @@ from dg01.errors import setup_logger
 logger = setup_logger(__name__)
 
 
-class GameDataManager:
+class DataManager:
     def __init__(self, data_dir: str = '__game_data'):
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(exist_ok=True)
@@ -3579,7 +3580,7 @@ def get_evolution_quiz(stage: str) -> dict:
 # ===== logic.py =====
 from dg01.games.base import GameLogic
 from dg01.errors import setup_logger, GameError
-from dg01.games.digimon.config import GAME_CONFIG, get_next_stage, get_stage_config, get_random_message
+from dg01.games.digimon.digimon_config import GAME_CONFIG, get_next_stage, get_stage_config, get_random_message
 
 
 logger = setup_logger(__name__)
@@ -3598,8 +3599,8 @@ import discord
 from discord.ext import commands
 
 from dg01.errors import setup_logger
-from dg01.manager import GameManager
-from dg01.const import GameType
+from dg01.manager_game import GameManager
+from dg01.games import GameType
 
 
 logger = setup_logger(__name__)
@@ -3669,10 +3670,10 @@ import discord
 from discord.ext import commands
 
 from dg01.session import GameSession
-from dg01.events import EventBus
+from dg01.event_bus import EventBus
 from dg01.errors import setup_logger, GameError
-from dg01.const import GameType
-from dg01.games.digimon.cog import DigimonCog
+from dg01.games import GameType
+from dg01.games.digimon.digimon_cog import DigimonCog
 
 
 logger = setup_logger(__name__)
@@ -3839,12 +3840,12 @@ from typing import Optional
 from discord.ext import commands
 
 from dg01.errors import setup_logger, GameError, GameCriticalError, InvalidActionError
-from dg01.events import EventBus
-from dg01.const import GameType, GameState
+from dg01.event_bus import EventBus
+from dg01.const import GameState
 from dg01.games.base import GameLogic
-from dg01.games.digimon.logic import DigimonLogic
-from dg01.games.digimon.cog import DigimonCog
-from dg01.data import GameDataManager
+from dg01.games.digimon.digimon_ import DigimonLogic
+from dg01.games.digimon.digimon_cog import DigimonCog
+from dg01.manager_data import DataManager
 
 
 logger = setup_logger(__name__)
@@ -3857,7 +3858,7 @@ class GameSession:
         self.event_bus = event_bus
         self.game_type = game_type
         self.game_logic = self.create_game_logic(game_type)
-        self.data_manager = GameDataManager()
+        self.data_manager = DataManager()
         self.state = GameState.WAITING
         self.tick_rate = 1.0   
 

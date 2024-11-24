@@ -12,7 +12,7 @@ class DigimonCog(commands.Cog):
 
     @commands.command(name="쓰담쓰담", aliases=["ㅅㄷㅅㄷ", "ㅆㄷㅆㄷ"])
     async def start(self, ctx: commands.Context):
-         await ctx.send('쓰담쓰담 쓰담쓰담')
+         await ctx.send('쓰담쓰담 쓰담쓰담')        
 
     @commands.command(name="응원")
     async def cheer(self, ctx):

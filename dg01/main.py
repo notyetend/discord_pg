@@ -4,9 +4,10 @@ from pathlib import Path
 import discord
 from discord.ext import commands
 
+from dg01.manager_cog import CogManager
 from dg01.errors import setup_logger
-from dg01.manager import GameManager
-from dg01.const import GameType
+from dg01.manager_game import GameManager
+from dg01.games import GameType
 
 
 logger = setup_logger(__name__)
@@ -21,8 +22,10 @@ class GameCommandsCog(commands.Cog):
         """게임 시작 명령어"""
         try:
             game_type = GameType(game_type_str.lower())
-            success = await self.bot.game_manager.create_game(ctx.author.id, ctx.channel.id, game_type)
-            if success:
+            success_gm = await self.bot.game_manager.create_game(ctx.author.id, ctx.channel.id, game_type)
+            success_cog = await self.bot.cog_manager.add_cog(game_type)
+
+            if success_gm and success_cog:
                 await ctx.send(f"{game_type} 게임이 시작되었습니다!")
             else:
                 await ctx.send("이미 게임이 실행 중입니다.")
@@ -33,8 +36,10 @@ class GameCommandsCog(commands.Cog):
     async def end_game(self, ctx: commands.Context, game_type_str: str):
         """게임 종료 명령어"""
         game_type = GameType(game_type_str.lower())
-        success = await self.bot.game_manager.end_game(ctx.author.id, game_type)
-        if success:
+        success_gm = await self.bot.game_manager.end_game(ctx.author.id, game_type)
+        success_cog = await self.bot.cog_manager.remove_cog(game_type)
+
+        if success_gm and success_cog:
             await ctx.send(f"{game_type} 게임이 종료되었습니다.")
         else:
             await ctx.send("실행 중인 게임이 없습니다.")
@@ -47,6 +52,7 @@ class GameBot(commands.Bot):
         super().__init__(command_prefix="!", intents=intents)
 
         self.game_manager = GameManager(self)
+        self.cog_manager = CogManager(self)
     
     async def setup_hook(self):
         print("GameBot.setup_hook called")

@@ -1,10 +1,8 @@
 import pytest
-import asyncio
-from unittest.mock import MagicMock
-from dataclasses import fields
 
-from dg01.const import create_game_event, GameType, GameEventDefaultData
-from dg01.events import EventBus,  GameEventType
+from dg01.const import create_game_event
+from dg01.event_bus import EventBus,  GameEventType
+from dg01.games import GameType
 from dg01.session import GameSession
 
 

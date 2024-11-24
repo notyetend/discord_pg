@@ -4,12 +4,12 @@ from typing import Optional
 from discord.ext import commands
 
 from dg01.errors import setup_logger, GameError, GameCriticalError, InvalidActionError
-from dg01.events import EventBus
-from dg01.const import GameType, GameState, GameEventType, create_game_event
+from dg01.event_bus import EventBus
+from dg01.const import GameState, GameEventType, create_game_event
+from dg01.games import GameType
 from dg01.games.base import GameLogic
-from dg01.games.digimon.logic import DigimonLogic
-from dg01.games.digimon.cog import DigimonCog
-from dg01.data import GameDataManager
+from dg01.games.digimon.digimon_logic import DigimonLogic
+from dg01.manager_data import DataManager
 
 
 logger = setup_logger(__name__)
@@ -22,7 +22,7 @@ class GameSession:
         self.event_bus = event_bus
         self.game_type = game_type
         self.game_logic = self.create_game_logic(game_type)
-        self.data_manager = GameDataManager()
+        self.data_manager = DataManager(game_type)
         self.state = GameState.WAITING
         self.tick_rate = 1.0   
 
@@ -97,11 +97,13 @@ class GameSession:
 
             # 게임 종료 이벤트 발행
             # create_game_event(GameEventType.GAME_CLEANUP, self)  # @@@
-            await self.event_bus.publish("game_cleanup", {
-                "user_id": self.user_id,
-                "channel_id": self.channel_id,
-                "game_type": self.game_type
-            })
+            game_event = create_game_event(
+                GameEventType.GAME_CLEANUP,
+                user_id=self.user_id,
+                channel_id=self.channel_id,
+                game_type=self.game_type
+            )
+            await self.event_bus.publish(game_event)
 
             # 게임 상태를 FINISHED로 변경
             self.state = GameState.FINISHED
@@ -159,12 +161,14 @@ class GameSession:
                 self.state = GameState.PAUSED
 
             # 이벤트 발행
-            await self.event_bus.publish("game_error", {
-                "user_id": self.user_id,
-                "error_info": error_info,
-                "channel_id": self.channel_id,
-                "severity": severity
-            })
+            game_event = create_game_event(
+                GameEventType.GAME_ERROR,
+                user_id=self.user_id,
+                channel_id=self.channel_id,
+                error_info=error_info,
+                severity=severity
+            )
+            await self.event_bus.publish(game_event)
         except Exception as e:
             logger.critical(f"Error in error handler: {str(e)}")
             if ctx:

@@ -2,6 +2,7 @@ from typing import Dict, List
 
 from dg01.const import GameEventType, GameEventData, GameEvent
 
+
 class EventBus:
     def __init__(self):
         # 이벤트 타입별 구독자(콜백 함수) 목록을 저장하는 딕셔너리
