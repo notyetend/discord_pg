@@ -9,7 +9,6 @@ from dg01.const import GameState, GameEventType, create_game_event
 from dg01.games import GameType
 from dg01.games.base import GameLogic
 from dg01.games.digimon.digimon_logic import DigimonLogic
-from dg01.manager_data import DataManager
 
 
 logger = setup_logger(__name__)
@@ -22,7 +21,6 @@ class GameSession:
         self.event_bus = event_bus
         self.game_type = game_type
         self.game_logic = self.create_game_logic(game_type)
-        self.data_manager = DataManager(game_type)
         self.state = GameState.WAITING
         self.tick_rate = 1.0   
 

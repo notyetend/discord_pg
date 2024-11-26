@@ -1,7 +1,6 @@
 import os
 import json
 import asyncio
-import aiofiles
 import sqlite3
 import aiosqlite
 import logging

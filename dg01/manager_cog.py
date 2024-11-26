@@ -1,3 +1,4 @@
+"""
 from discord.ext import commands
 
 from dg01.games import GameType, MAPPING__GAME_TYPE__COG_CLASS
@@ -10,8 +11,13 @@ class CogManager:
 
     async def add_cog(self, game_type: GameType):
         CogClass = MAPPING__GAME_TYPE__COG_CLASS.get(game_type)
+
         if CogClass:
-            await self.bot.add_cog(CogClass(self.bot))
+            if self.bot.get_cog(CogClass(self.bot).qualified_name):
+                print(f"Cog for {game_type} is aready registered.")
+            else:
+                await self.bot.add_cog(CogClass(self.bot))
+                
             return True
         else:
             raise GameError(f"Unknown game type for cog: {game_type}")
@@ -23,3 +29,4 @@ class CogManager:
             return True
         else:
             raise GameError(f"Unknown game type for cog: {game_type}")
+"""
