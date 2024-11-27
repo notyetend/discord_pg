@@ -4,7 +4,7 @@ import asyncio
 import random
 
 from dg01.games import GameType
-from dg01.manager_data import DataManager
+from dg01.data_manager import DataManager
 
 
 class TestData:

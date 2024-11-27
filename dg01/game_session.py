@@ -6,10 +6,10 @@ from discord.ext import commands
 from dg01.errors import setup_logger, GameError, GameCriticalError, InvalidActionError
 from dg01.event_bus import EventBus
 from dg01.const import GameState, GameEventType, create_game_event
-from dg01.games import GameType
+from dg01.games import GameType, MAPPING__GAME_TYPE__COG_CLASS
 from dg01.games.base import GameLogic
 from dg01.games.digimon.digimon_logic import DigimonLogic
-from dg01.manager_data import DataManager
+from dg01.data_manager import DataManager
 
 
 logger = setup_logger(__name__)
@@ -108,10 +108,10 @@ class GameSession:
             # 게임 상태를 FINISHED로 변경
             self.state = GameState.FINISHED
 
-            logger.info(f"Cleaned up game session for user {self.user_id}")
+            logger.info(f"Cleaned up game session for user {self.user_id} and channel {self.channel_id}")
 
         except Exception as e:
-            logger.error(f"Error during cleanup for user {self.user_id}: {str(e)}")
+            logger.error(f"Error during cleanup for user {self.user_id} and channel {self.channel_id}: {str(e)}")
 
     async def handle_error(self, error: Exception, ctx: Optional[commands.Context] = None) -> None:
         """
@@ -125,7 +125,8 @@ class GameSession:
         try:
             # 에러 정보 구성
             error_info = {
-                "session_id": str(self.user_id),
+                "user_id": str(self.user_id),
+                "channel_id": str(self.channel_id),
                 "game_type": self.game_type,
                 "error_type": type(error).__name__,
                 "error_message": str(error)

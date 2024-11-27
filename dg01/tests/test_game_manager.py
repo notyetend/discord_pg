@@ -3,12 +3,12 @@ import asyncio
 from unittest.mock import MagicMock, AsyncMock
 
 from dg01.games import GameType
-from dg01.session import GameSession
+from dg01.game_session import GameSession
 from dg01.event_bus import EventBus
 from dg01.const import GameState, create_game_event, GameEvent, GameEventData, GameEventType
 from dg01.games.digimon.digimon_logic import DigimonLogic
 from dg01.errors import GameError
-from dg01.manager_game import GameManager
+from dg01.game_manager import GameManager
 
 
 class TestGameManager:
@@ -87,8 +87,8 @@ class TestGameManager:
     @pytest.mark.asyncio
     async def test_end_game(self, game_manager, user_id, channel_id, game_type):
         session = await game_manager.create_game(user_id, channel_id, game_type)
-        game_manager.sessions[user_id] = session
-        await game_manager.end_game(user_id, game_type)
+        game_manager.sessions[(user_id, channel_id)] = session
+        await game_manager.end_game(user_id, channel_id, game_type)
 
     @pytest.mark.asyncio
     async def test_handle_game_started(self, game_manager, user_id, channel_id, game_type):
@@ -109,8 +109,10 @@ class TestGameManager:
 
         game_event = create_game_event(
             GameEventType.GAME_ERROR,
-            error_message="test error message",
-            channel_id=channel_id
+            user_id=user_id,
+            channel_id=channel_id,
+            error_info="test error message",
+            severity="blabla"
         )
         await game_manager.handle_game_error(data=game_event.data)
         await game_manager.event_bus.publish(game_event=game_event)

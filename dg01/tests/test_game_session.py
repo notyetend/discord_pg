@@ -3,7 +3,7 @@ import asyncio
 from unittest.mock import MagicMock
 
 from dg01.games import GameType
-from dg01.session import GameSession
+from dg01.game_session import GameSession
 from dg01.event_bus import EventBus
 from dg01.const import GameState, create_game_event, GameEvent, GameEventData, GameEventType
 from dg01.games.digimon.digimon_logic import DigimonLogic

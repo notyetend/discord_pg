@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from dg01.games import GameType
 from dg01.const import GameState
 from dg01.games import GameType
-from dg01.manager_data import DataManager
+from dg01.data_manager import DataManager
 from dg01.errors import GameError
 from dg01.errors import setup_logger
 from dg01.errors import setup_logger, GameError
@@ -16,8 +16,8 @@ from dg01.games.digimon import DigimonLogic
 from dg01.games.digimon.digimon_cog import DigimonCog
 from dg01.games.digimon.digimon_config import GAME_CONFIG, get_next_stage, get_stage_config, get_random_message
 from dg01.games.digimon.digimon_ import DigimonLogic
-from dg01.manager_game import GameManager
-from dg01.session import GameSession
+from dg01.game_manager import GameManager
+from dg01.game_session import GameSession
 from discord.ext import commands
 from enum import Enum
 from logging.handlers import RotatingFileHandler
@@ -41,7 +41,7 @@ from datetime import datetime, timedelta, timezone
 from datetime import datetime, timezone
 from dg01.games import GameType
 from dg01.const import GameState
-from dg01.manager_data import DataManager
+from dg01.data_manager import DataManager
 from dg01.errors import GameError
 from dg01.errors import setup_logger
 from dg01.errors import setup_logger, GameError
@@ -53,8 +53,8 @@ from dg01.games.digimon import DigimonLogic
 from dg01.games.digimon.digimon_cog import DigimonCog
 from dg01.games.digimon.digimon_config import GAME_CONFIG, get_next_stage, get_stage_config, get_random_message
 from dg01.games.digimon.digimon_ import DigimonLogic
-from dg01.manager_game import GameManager
-from dg01.session import GameSession
+from dg01.game_manager import GameManager
+from dg01.game_session import GameSession
 from discord.ext import commands
 from enum import Enum
 from logging.handlers import RotatingFileHandler
@@ -85,8 +85,8 @@ from dg01.event_bus import EventBus
 from dg01.games.base import GameLogic
 from dg01.games.digimon import DigimonCog, DigimonLogic
 from dg01.games.digimon import DigimonLogic
-from dg01.manager_game import GameManager
-from dg01.session import GameSession
+from dg01.game_manager import GameManager
+from dg01.game_session import GameSession
 from discord.ext import commands
 from enum import Enum
 from logging.handlers import RotatingFileHandler
@@ -116,8 +116,8 @@ from dg01.event_bus import EventBus
 from dg01.games.base import GameLogic
 from dg01.games.digimon import DigimonCog, DigimonLogic
 from dg01.games.digimon import DigimonLogic
-from dg01.manager_game import GameManager
-from dg01.session import GameSession
+from dg01.game_manager import GameManager
+from dg01.game_session import GameSession
 from discord.ext import commands
 from enum import Enum
 from logging.handlers import RotatingFileHandler
@@ -146,8 +146,8 @@ from dg01.event_bus import EventBus
 from dg01.games.base import GameLogic
 from dg01.games.digimon import DigimonCog, DigimonLogic
 from dg01.games.digimon import DigimonLogic
-from dg01.manager_game import GameManager
-from dg01.session import GameSession
+from dg01.game_manager import GameManager
+from dg01.game_session import GameSession
 from discord.ext import commands
 from enum import Enum
 from logging.handlers import RotatingFileHandler
@@ -447,7 +447,7 @@ import discord
 from discord.ext import commands
 
 from dg01.errors import setup_logger
-from dg01.manager_game import GameManager
+from dg01.game_manager import GameManager
 from dg01.games import GameType
 
 
@@ -516,7 +516,7 @@ from datetime import datetime, timedelta, timezone
 import discord
 from discord.ext import commands
 
-from dg01.session import GameSession
+from dg01.game_session import GameSession
 from dg01.event_bus import EventBus
 from dg01.errors import GameError
 from dg01.games import GameType
@@ -1112,7 +1112,7 @@ import discord
 from discord.ext import commands
 
 from dg01.errors import setup_logger
-from dg01.manager_game import GameManager
+from dg01.game_manager import GameManager
 from dg01.games import GameType
 
 
@@ -1181,7 +1181,7 @@ from datetime import datetime, timedelta, timezone
 import discord
 from discord.ext import commands
 
-from dg01.session import GameSession
+from dg01.game_session import GameSession
 from dg01.event_bus import EventBus
 from dg01.errors import setup_logger, GameError
 from dg01.games import GameType
@@ -1788,7 +1788,7 @@ import discord
 from discord.ext import commands
 
 from dg01.errors import setup_logger
-from dg01.manager_game import GameManager
+from dg01.game_manager import GameManager
 from dg01.games import GameType
 
 
@@ -1858,7 +1858,7 @@ from datetime import datetime, timedelta, timezone
 import discord
 from discord.ext import commands
 
-from dg01.session import GameSession
+from dg01.game_session import GameSession
 from dg01.event_bus import EventBus
 from dg01.errors import setup_logger, GameError
 from dg01.games import GameType
@@ -2675,7 +2675,7 @@ import discord
 from discord.ext import commands
 
 from dg01.errors import setup_logger
-from dg01.manager_game import GameManager
+from dg01.game_manager import GameManager
 from dg01.games import GameType
 
 
@@ -2745,7 +2745,7 @@ from datetime import datetime, timedelta, timezone
 import discord
 from discord.ext import commands
 
-from dg01.session import GameSession
+from dg01.game_session import GameSession
 from dg01.event_bus import EventBus
 from dg01.errors import setup_logger, GameError
 from dg01.games import GameType
@@ -2921,7 +2921,7 @@ from dg01.const import GameState
 from dg01.games.base import GameLogic
 from dg01.games.digimon.digimon_ import DigimonLogic
 from dg01.games.digimon.digimon_cog import DigimonCog
-from dg01.manager_data import DataManager
+from dg01.data_manager import DataManager
 
 
 logger = setup_logger(__name__)
@@ -3599,7 +3599,7 @@ import discord
 from discord.ext import commands
 
 from dg01.errors import setup_logger
-from dg01.manager_game import GameManager
+from dg01.game_manager import GameManager
 from dg01.games import GameType
 
 
@@ -3669,7 +3669,7 @@ from datetime import datetime, timedelta, timezone
 import discord
 from discord.ext import commands
 
-from dg01.session import GameSession
+from dg01.game_session import GameSession
 from dg01.event_bus import EventBus
 from dg01.errors import setup_logger, GameError
 from dg01.games import GameType
@@ -3845,7 +3845,7 @@ from dg01.const import GameState
 from dg01.games.base import GameLogic
 from dg01.games.digimon.digimon_ import DigimonLogic
 from dg01.games.digimon.digimon_cog import DigimonCog
-from dg01.manager_data import DataManager
+from dg01.data_manager import DataManager
 
 
 logger = setup_logger(__name__)

@@ -1,4 +1,5 @@
 from enum import Enum
+
 from dg01.games.digimon.digimon_cog import DigimonCog
 from dg01.games.digimon.digimon_data import DigimonDataFields
 
