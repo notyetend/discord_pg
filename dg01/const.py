@@ -70,7 +70,7 @@ class GameEventDefaultData(GameEventData):
 class GameEventErrorData(GameEventData):
     user_id: str
     channel_id: str
-    error_message: str
+    error_info: str
     severity: str
     created_at: float = None
     

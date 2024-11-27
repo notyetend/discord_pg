@@ -3,7 +3,7 @@ import pytest
 from dg01.const import create_game_event
 from dg01.event_bus import EventBus,  GameEventType
 from dg01.games import GameType
-from dg01.session import GameSession
+from dg01.game_session import GameSession
 
 
 class TestConst:
@@ -34,5 +34,14 @@ class TestConst:
             user_id=user_id,
             channel_id=channel_id,
             game_type=game_type
+        )
+        print(f"=== {game_event} ===")
+
+        game_event = create_game_event(
+            GameEventType.GAME_ERROR,
+            user_id=user_id,
+            channel_id=channel_id,
+            error_info="blabla",
+            severity="hahaha"
         )
         print(f"=== {game_event} ===")

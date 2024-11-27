@@ -5,11 +5,11 @@ import discord
 from discord.ext import commands
 
 from dg01.games import GameType, MAPPING__GAME_TYPE__COG_CLASS
-from dg01.session import GameSession
+from dg01.game_session import GameSession
 from dg01.event_bus import EventBus
 from dg01.errors import setup_logger, GameError
 from dg01.const import GameEventType
-from dg01.manager_data import DataManager
+from dg01.data_manager import DataManager
 
 
 logger = setup_logger(__name__)
@@ -17,13 +17,9 @@ logger = setup_logger(__name__)
 
 class GameManager:
     def __init__(self, bot: commands.Bot):
-        self.bot = bot
-        
-        self.sessions: Dict[int, GameSession] = {}  # user_id: GameSession
-        self.data_managers: Dict[GameType, DataManager] = {}  # GameType: DataManager
+        self.bot = bot        
         self.event_bus = EventBus()
-        self.cogs: Dict[int, commands.Cog] = {}  # channel_id, Cog  @@@
-
+        self.sessions: Dict[(int, int), GameSession] = {}  # (user_id, channel_id): GameSession
         self.setup_event_handlers()
     
     def setup_event_handlers(self):
@@ -31,23 +27,19 @@ class GameManager:
         self.event_bus.subscribe(GameEventType.GAME_ERROR, self.handle_game_error)
 
     async def create_game(self, user_id: int, channel_id: int, game_type: GameType) -> GameSession:
-        if game_type in self.data_managers:
-            pass
-        else:
-            self.data_managers[game_type] = DataManager(game_type=game_type)
-
         self.add_cog(game_type=game_type)
         
-        if user_id in self.sessions:
+        if (user_id, channel_id) in self.sessions:
             return GameError("You already have an active game")
         else:
             session = GameSession(
                 user_id=user_id, 
                 channel_id=channel_id, 
                 event_bus=self.event_bus, 
-                game_type=game_type
+                game_type=game_type,
+                
             )
-            self.sessions[user_id] = session
+            self.sessions[(user_id, channel_id)] = session
 
             # message = await self.send_game_message(channel_id)
             # session.message_id = message.id
@@ -61,7 +53,7 @@ class GameManager:
 
             return session
             
-    async def end_game(self, user_id: int, game_type: GameType) -> bool:
+    async def end_game(self, user_id: int, channel_id: int, game_type: GameType) -> bool:
         """
         특정 사용자의 게임 세션을 종료합니다.
         
@@ -74,7 +66,7 @@ class GameManager:
         """
         try:
             # 사용자의 세션 찾기
-            session = self.sessions.get(user_id)
+            session = self.sessions.get((user_id, channel_id))
             if not session or session.game_type != game_type:
                 return False
 
@@ -88,7 +80,7 @@ class GameManager:
             """
 
             # 활성 세션 목록에서 제거
-            del self.sessions[user_id]
+            del self.sessions[(user_id, channel_id)]
             
             return True
             
@@ -121,7 +113,7 @@ class GameManager:
         """게임 시작 이벤트 처리"""
         channel = self.bot.get_channel(data.channel_id)
         if channel:
-            await channel.send(f"Game started by user {data.user_id}")
+            await channel.send(f"Game started by user {data.user_id} and chanel {data.channel_id}")
         else:
             raise GameError("Failed to get channel.")
         
@@ -129,7 +121,7 @@ class GameManager:
         """게임 에러 이벤트 처리"""
         channel = self.bot.get_channel(data.channel_id)
         if channel:
-            await channel.send(f"Error {data.error_message}")
+            await channel.send(f"Error {data.error_info}")
         else:
             raise GameError("Failed to get channel.")
 

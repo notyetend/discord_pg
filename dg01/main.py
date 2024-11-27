@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 
 from dg01.errors import setup_logger
-from dg01.manager_game import GameManager
+from dg01.game_manager import GameManager
 from dg01.games import GameType
 
 
