@@ -4,13 +4,11 @@ from datetime import datetime, timedelta, timezone
 import discord
 from discord.ext import commands
 
-from dg01.games import GameType, MAPPING__GAME_TYPE__COG_CLASS
 from dg01.game_session import GameSession
 from dg01.event_bus import EventBus
 from dg01.errors import setup_logger, GameError
 from dg01.const import GameEventType
 from dg01.data_manager import DataManager
-
 
 logger = setup_logger(__name__)
 
@@ -19,68 +17,49 @@ class GameManager:
     def __init__(self, bot: commands.Bot):
         self.bot = bot        
         self.event_bus = EventBus()
-        self.sessions: Dict[(int, int), GameSession] = {}  # (user_id, channel_id): GameSession
+        self.sessions: Dict[int, GameSession] = {}  # user_id: GameSession
+        self.data_manager = DataManager()
         self.setup_event_handlers()
     
     def setup_event_handlers(self):
         self.event_bus.subscribe(GameEventType.GAME_STARTED, self.handle_game_started)
         self.event_bus.subscribe(GameEventType.GAME_ERROR, self.handle_game_error)
 
-    async def create_game(self, user_id: int, channel_id: int, game_type: GameType) -> GameSession:
-        self.add_cog(game_type=game_type)
-        
-        if (user_id, channel_id) in self.sessions:
-            return GameError("You already have an active game")
+    async def create_game(self, user_id: int, channel_id: int) -> GameSession:       
+        if user_id in self.sessions:
+            return False
         else:
             session = GameSession(
                 user_id=user_id, 
                 channel_id=channel_id, 
-                event_bus=self.event_bus, 
-                game_type=game_type,
+                event_bus=self.event_bus
                 
             )
-            self.sessions[(user_id, channel_id)] = session
-
-            # message = await self.send_game_message(channel_id)
-            # session.message_id = message.id
+            self.sessions[user_id] = session
+            _ = await self.data_manager.get_user_data(user_id)
+            return True
             
-            """
-            if game_type == GameType.DIGIMON:
-                await self.bot.add_cog(DigimonCog(self.bot))
-            else:
-                raise GameError(f"Unknown game type for cog: {game_type}")
-            """
-
-            return session
-            
-    async def end_game(self, user_id: int, channel_id: int, game_type: GameType) -> bool:
+    async def end_game(self, user_id: int) -> bool:
         """
         특정 사용자의 게임 세션을 종료합니다.
         
         Args:
             user_id (int): 게임을 종료할 사용자의 ID
-            game_type (GameType): 종료할 게임의 타입
             
         Returns:
             bool: 게임이 정상적으로 종료되면 True, 실행 중인 게임을 찾지 못하면 False
         """
         try:
             # 사용자의 세션 찾기
-            session = self.sessions.get((user_id, channel_id))
-            if not session or session.game_type != game_type:
+            session = self.sessions.get(user_id)
+            if not session:
                 return False
 
             # 세션 정리
             await session.cleanup()
-            
-            """
-            # 게임 Cog 제거
-            if game_type == GameType.DIGIMON:
-                await self.bot.remove_cog(DigimonCog(self.bot).qualified_name)
-            """
 
             # 활성 세션 목록에서 제거
-            del self.sessions[(user_id, channel_id)]
+            del self.sessions[user_id]
             
             return True
             
@@ -88,27 +67,6 @@ class GameManager:
             logger.error(f"게임 종료 중 오류 발생: {str(e)}")
             return False
 
-    async def add_cog(self, game_type: GameType):
-        CogClass = MAPPING__GAME_TYPE__COG_CLASS.get(game_type)
-
-        if CogClass:
-            if self.bot.get_cog(CogClass(self.bot).qualified_name):
-                print(f"Cog for {game_type} is aready registered.")
-            else:
-                await self.bot.add_cog(CogClass(self.bot))
-                
-            return True
-        else:
-            raise GameError(f"Unknown game type for cog: {game_type}")
-
-    async def remove_cog(self, game_type: GameType):
-        CogClass = MAPPING__GAME_TYPE__COG_CLASS.get(game_type)
-        if CogClass:
-            await self.bot.remove_cog(CogClass(self.bot).qualified_name)
-            return True
-        else:
-            raise GameError(f"Unknown game type for cog: {game_type}")
-        
     async def handle_game_started(self, data: dict):
         """게임 시작 이벤트 처리"""
         channel = self.bot.get_channel(data.channel_id)

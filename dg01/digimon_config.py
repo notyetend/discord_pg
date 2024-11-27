@@ -1,9 +1,17 @@
 import pandas as pd
 
+STAGES = {  # stage_idx: stage_name
+    0: "디지타마",
+    1: "쿠라몬",
+    2: "츠메몬",
+    3: "케라몬",
+    4: "크리사리몬",
+    5: "인펠몬",
+    6: "디아블로몬"
+}
 
 STAGE_CONFIG = [
     {
-        "stage_name": "디지타마",
         "stage_idx": 0,
         "evolution_time": 0,
         "evolution_count": 1,
@@ -16,7 +24,6 @@ STAGE_CONFIG = [
         "evolution_quiz": [],
     },
     {
-        "stage_name": "쿠라몬",
         "stage_idx": 1,
         "evolution_time": 30,
         "evolution_count": 1010101010,
@@ -39,7 +46,6 @@ STAGE_CONFIG = [
         ],
     },
     {
-        "stage_name": "츠메몬",
         "stage_idx": 2,
         "evolution_time": 600,
         "evolution_count": 2000000000,
@@ -62,7 +68,6 @@ STAGE_CONFIG = [
         ],
     },
     {
-        "stage_name": "케라몬",
         "stage_idx": 3,
         "evolution_time": 6060,
         "evolution_count": 4000000000,
@@ -85,7 +90,6 @@ STAGE_CONFIG = [
         ],
     },
     {
-        "stage_name": "크리사리몬",
         "stage_idx": 4,
         "evolution_time": 121000,
         "evolution_count": 8000000000,
@@ -108,7 +112,6 @@ STAGE_CONFIG = [
         ],
     },
     {
-        "stage_name": "인펠몬",
         "stage_idx": 5,
         "evolution_time": 266400,
         "evolution_count": 16000000000,
@@ -131,7 +134,6 @@ STAGE_CONFIG = [
         ],
     },
     {
-        "stage_name": "디아블로몬",
         "stage_idx": 6,
         "evolution_time": 600,
         "evolution_count": 0,
@@ -174,32 +176,32 @@ EVENT_NEWS_CONFIG = [
 ]
 
 DFP_STAGE_CONFIG = pd.DataFrame(STAGE_CONFIG)
-EVOLUTION_ORDER = DFP_STAGE_CONFIG.sort_values("stage_idx")['stage_name'].tolist()
+EVOLUTION_ORDER = [value for _, value in sorted(STAGES.items())]
 
-# 편의 함수들
-def get_next_stage(current_stage_name: str) -> str:
-    """현재 스테이지의 다음 진화 단계를 반환"""
-    if current_stage_name == "디아블로몬":
-        return None
-    current_index = EVOLUTION_ORDER.index(current_stage_name)
-    return EVOLUTION_ORDER[current_index + 1]
+def get_next_stage_idx(current_stage_idx):
+    """현재 stage의 다음 stage_idx를 반환"""
+    sorted_stages = sorted(STAGES.keys())
+    current_index = sorted_stages.index(current_stage_idx)
+    if current_index < len(sorted_stages) - 1:
+        return sorted_stages[current_index + 1]
+    return None
 
-def get_stage_config(stage_name: str) -> dict:
+def get_stage_config(stage_idx: int) -> dict:
     """특정 스테이지의 설정을 반환"""
-    dfp_stage_config = DFP_STAGE_CONFIG.query(f"stage_name == '{stage_name}'")
+    dfp_stage_config = DFP_STAGE_CONFIG.query(f"stage_idx == {stage_idx}")
     assert dfp_stage_config.shape[0] == 1
     return dfp_stage_config.to_dict(orient="records")[0]
 
-def get_battle_chance(stage_name: str) -> float:
+def get_battle_chance(stage_idx: int) -> float:
     """특정 스테이지의 기본 전투 승률을 반환"""
-    return get_stage_config(stage_name)["battle_chance"]
+    return get_stage_config(stage_idx)["battle_chance"]
 
-def get_random_message(stage_name: str) -> str:
+def get_random_message(stage_idx: int) -> str:
     """특정 스테이지의 랜덤 대사 중 하나를 반환"""
     import random
-    messages = get_stage_config(stage_name)["random_messages"]
+    messages = get_stage_config(stage_idx)["random_messages"]
     return random.choice(messages) if messages else None
 
-def get_evolution_quiz(stage_name: str) -> dict:
+def get_evolution_quiz(stage_idx: int) -> dict:
     """특정 스테이지의 진화 퀴즈를 반환"""
-    return get_stage_config(stage_name)["evolution_quiz"]
+    return get_stage_config(stage_idx)["evolution_quiz"]

@@ -16,10 +16,6 @@ class TestEventBus:
         return 222
 
     @pytest.fixture
-    def game_type(self):
-        return GameType.DIGIMON
-
-    @pytest.fixture
     def event_bus(self):
         return EventBus()
     
@@ -31,24 +27,22 @@ class TestEventBus:
         return test_callback
 
     @pytest.mark.asyncio
-    async def test_subscribe(self, event_bus, test_callback, user_id, channel_id, game_type):
+    async def test_subscribe(self, event_bus, test_callback, user_id, channel_id):
         game_event = create_game_event(
             GameEventType.GAME_STARTED,
             user_id=user_id,
-            channel_id=channel_id,
-            game_type=game_type
+            channel_id=channel_id
         )
         event_bus.subscribe(game_event.type, test_callback)
 
         assert test_callback in event_bus.subscribers[game_event.type]
     
     @pytest.mark.asyncio
-    async def test_publish(self, event_bus, test_callback, user_id, channel_id, game_type, capsys):
+    async def test_publish(self, event_bus, test_callback, user_id, channel_id, capsys):
         game_event = create_game_event(
             GameEventType.GAME_STARTED,
             user_id=user_id,
-            channel_id=channel_id,
-            game_type=game_type
+            channel_id=channel_id
         )
         event_bus.subscribe(game_event.type, test_callback)
 

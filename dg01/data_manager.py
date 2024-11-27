@@ -7,17 +7,15 @@ import logging
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List, NamedTuple
-
+from dg01.digimon_data import DigimonDataFields
 from dg01.errors import setup_logger, GameError
-from dg01.games import GameType
-from dg01.games import MAPPING__GAME_TYPE__DATA_FIELDS_CLASS
 
 
 logger = setup_logger(__name__)
 
 
 class DataManager:
-    def __init__(self, game_type: GameType, db_path: str = '__game_data/game.db', table_name: str = 'user_data'):
+    def __init__(self, db_path: str = '__game_data/game.db', table_name: str = 'user_data'):
         """
         GameDataManager 초기화
         
@@ -26,16 +24,9 @@ class DataManager:
         """
         self.db_path = db_path
         self.table_name = table_name
-        self.fields = self.get_data_fields(game_type)
+        self.fields = DigimonDataFields()
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
         self._init_db()
-
-    def get_data_fields(self, game_type: GameType):
-        DataFieldsClass = MAPPING__GAME_TYPE__DATA_FIELDS_CLASS.get(game_type)
-        if DataFieldsClass:
-            return DataFieldsClass()
-        else:
-            raise GameError(f'Unknown game type {game_type}, raised in get_data_fields_class.')
 
     @property
     def create_table_sql(self) -> str:
@@ -156,9 +147,9 @@ class DataManager:
             update_fields = [f"{col} = :{col}" for col in self.columns if col != 'user_id']
             update_query = f"""UPDATE user_data SET {', '.join(update_fields)} WHERE user_id = :user_id"""
             update_params = {**{col: data.get(col) for col in self.columns}, 'user_id': user_id}
-            print(update_query, update_params)
+            print(f"{update_query=}")
+            print(f"{update_params=}")
             async with aiosqlite.connect(self.db_path) as db:
-                print(help(db.execute))
                 await db.execute(sql=update_query, parameters=update_params)
                 await db.commit()
                 return True

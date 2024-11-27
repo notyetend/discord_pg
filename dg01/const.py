@@ -36,7 +36,7 @@ class GameEvent(Generic[T]):
             이벤트 타입에 맞는 데이터 클래스를 지정해야 함
 
     Examples:
-        >>> data = GameEventDefaultData(user_id="123", channel_id="456", game_type="chess")
+        >>> data = GameEventDefaultData(user_id="123", channel_id="456")
         >>> event = GameEvent[GameEventDefaultData](
         ...     type=EventType.GAME_STARTED,
         ...     data=data
@@ -58,7 +58,6 @@ class GameEvent(Generic[T]):
 class GameEventDefaultData(GameEventData):
     user_id: str
     channel_id: str
-    game_type: str
     created_at: float = None
     
     def __post_init__(self):
@@ -95,7 +94,7 @@ def create_game_event(event_type: GameEventType, **data) -> GameEvent:
     Args:
         event_type (EventType): 생성할 이벤트의 타입 (예: EventType.GAME_STARTED)
         **data: 이벤트 데이터 필드들. 각 이벤트 타입에 맞는 필드들을 키워드 인자로 전달
-            - GAME_STARTED: user_id, channel_id, game_type
+            - GAME_STARTED: user_id, channel_id
             - GAME_ENDED: winner_id, score
             - PLAYER_MOVED: player_id, move, position
             
@@ -111,7 +110,6 @@ def create_game_event(event_type: GameEventType, **data) -> GameEvent:
         ...     EventType.GAME_STARTED,
         ...     user_id="123",
         ...     channel_id="456",
-        ...     game_type="chess"
         ... )
         >>> isinstance(event.data, GameEventDefaultData)
         True

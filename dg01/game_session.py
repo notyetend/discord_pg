@@ -6,31 +6,21 @@ from discord.ext import commands
 from dg01.errors import setup_logger, GameError, GameCriticalError, InvalidActionError
 from dg01.event_bus import EventBus
 from dg01.const import GameState, GameEventType, create_game_event
-from dg01.games import GameType, MAPPING__GAME_TYPE__COG_CLASS
-from dg01.games.base import GameLogic
-from dg01.games.digimon.digimon_logic import DigimonLogic
 from dg01.data_manager import DataManager
-
+from dg01.digimon_logic import DigimonLogic
 
 logger = setup_logger(__name__)
 
 
 class GameSession:
-    def __init__(self, user_id: int, channel_id: int, event_bus: EventBus, game_type: GameType):
+    def __init__(self, user_id: int, channel_id: int, event_bus: EventBus):
         self.user_id = user_id
         self.channel_id = channel_id
         self.event_bus = event_bus
-        self.game_type = game_type
-        self.game_logic = self.create_game_logic(game_type)
-        self.data_manager = DataManager(game_type)
+        self.game_logic = DigimonLogic()
+        self.data_manager = DataManager()
         self.state = GameState.WAITING
-        self.tick_rate = 1.0   
-
-    def create_game_logic(self, game_type: GameType) -> GameLogic:
-        if game_type == GameType.DIGIMON:
-            return DigimonLogic()
-        else:
-            raise GameError(f"Unknown game type for create_game_logic: {game_type}")
+        self.tick_rate = 1.0
     
     async def start_game(self):
         if self.state != GameState.WAITING:
@@ -44,7 +34,6 @@ class GameSession:
             GameEventType.GAME_STARTED,
             user_id=self.user_id,
             channel_id=self.channel_id,
-            game_type=self.game_type
         )
         await self.event_bus.publish(game_event)
 
@@ -100,8 +89,7 @@ class GameSession:
             game_event = create_game_event(
                 GameEventType.GAME_CLEANUP,
                 user_id=self.user_id,
-                channel_id=self.channel_id,
-                game_type=self.game_type
+                channel_id=self.channel_id
             )
             await self.event_bus.publish(game_event)
 
@@ -127,7 +115,6 @@ class GameSession:
             error_info = {
                 "user_id": str(self.user_id),
                 "channel_id": str(self.channel_id),
-                "game_type": self.game_type,
                 "error_type": type(error).__name__,
                 "error_message": str(error)
             }

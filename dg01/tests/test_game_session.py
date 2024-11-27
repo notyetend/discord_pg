@@ -2,12 +2,11 @@ import pytest
 import asyncio
 from unittest.mock import MagicMock
 
-from dg01.games import GameType
 from dg01.game_session import GameSession
 from dg01.event_bus import EventBus
 from dg01.const import GameState, create_game_event, GameEvent, GameEventData, GameEventType
-from dg01.games.digimon.digimon_logic import DigimonLogic
 from dg01.errors import GameError
+from dg01.digimon_logic import DigimonLogic
 
 
 class TestGameSession:
@@ -18,26 +17,22 @@ class TestGameSession:
     @pytest.fixture
     def channel_id(self):
         return 222
-
-    @pytest.fixture
-    def game_type(self):
-        return GameType.DIGIMON
     
     @pytest.fixture
     def event_bus(self):
         return EventBus()
 
     @pytest.fixture
-    def game_session(self, user_id, channel_id, event_bus, game_type):
-        game_session = GameSession(user_id, channel_id, event_bus, game_type)
+    def game_session(self, user_id, channel_id, event_bus):
+        game_session = GameSession(user_id, channel_id, event_bus)
         game_session.game_logic = MagicMock()
         game_session.game_logic.update.return_value = ['=== dummy_event ===']
         game_session.tick_rate = 10
         game_session.message_id = None
         return game_session
     
-    def test_create_game_logic(self, game_session, game_type):
-        assert isinstance(game_session.create_game_logic(game_type), DigimonLogic)
+    def test_create_game_logic(self, game_session):
+        assert isinstance(game_session.game_logic, DigimonLogic)
 
     @pytest.mark.asyncio
     async def test_start_game__case_error(self, game_session):
@@ -48,7 +43,7 @@ class TestGameSession:
         # assert str(exc_info.value) == "Game already started"
 
     @pytest.mark.asyncio
-    async def test_start_game__case_normal(self, user_id, channel_id, game_session, event_bus, capsys, game_type):
+    async def test_start_game__case_normal(self, user_id, channel_id, game_session, event_bus, capsys):
         test_callback_output = "=== Callback called - {callback_arg} ==="
         async def test_callback(callback_arg):
             await asyncio.sleep(1)
@@ -59,8 +54,7 @@ class TestGameSession:
         game_event = create_game_event(
             event_type=GameEventType.GAME_STARTED,
             user_id=user_id,
-            channel_id=channel_id,
-            game_type=game_type
+            channel_id=channel_id
         )
         event_bus.subscribe(game_event.type, test_callback)
         await game_session.start_game()
