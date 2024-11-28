@@ -13,10 +13,9 @@ STAGES = {  # stage_idx: stage_name
 STAGE_CONFIG = [
     {
         "stage_idx": 0,
-        "evolution_time": 0,
-        "evolution_count": 1,
-        "copy_rate": 0,
-        "data_rate": 0,
+        "evolution_time": 30,  # 예상 진화 시간(초)
+        "evolution_count": 100,  # MB
+        "copy_rate": 3,  # MB, 초당 증식
         "description": "부화를 기다리는 디지타마입니다. !쓰담쓰담으로 부화시켜주세요.",
         "image_path": "assets/digitama.webp",
         "battle_chance": 1,
@@ -25,10 +24,9 @@ STAGE_CONFIG = [
     },
     {
         "stage_idx": 1,
-        "evolution_time": 30,
-        "evolution_count": 1010101010,
-        "copy_rate": 1.0,  # 1초당 2배로 복제
-        "data_rate": 1,    # 1초당 1MB 흡수
+        "evolution_time": 7 * 60 + 30,
+        "evolution_count": 10_000,
+        "copy_rate": 22,
         "description": "컴퓨터 네트워크상에 갑자기 출연한 정체불명의 디지몬. 네트워크에서 병원균처럼 번식해 가벼운 네트워크 장애를 일으킵니다.",
         "special_move": "글레어 아이",
         "image_path": "assets/kuramon.webp",
@@ -47,10 +45,9 @@ STAGE_CONFIG = [
     },
     {
         "stage_idx": 2,
-        "evolution_time": 600,
-        "evolution_count": 2000000000,
-        "copy_rate": 1.5,  # 1초당 2.5배로 복제
-        "data_rate": 10,   # 1초당 10MB 흡수
+        "evolution_time": 60 * 60,
+        "evolution_count": 1_000_000,  # 1TB
+        "copy_rate": 278,
         "description": "쿠라몬이 더 진화한 유년기 디지몬. 촉수 끝이 갈고리발톱처럼 돼서 더 포악해졌습니다.",
         "special_move": "네일 스크래치",
         "image_path": "assets/tsumemon.webp",
@@ -69,10 +66,9 @@ STAGE_CONFIG = [
     },
     {
         "stage_idx": 3,
-        "evolution_time": 6060,
-        "evolution_count": 4000000000,
-        "copy_rate": 2.0,  # 1초당 3배로 복제
-        "data_rate": 100,  # 1초당 100MB 흡수
+        "evolution_time": 12 * 60 * 60,
+        "evolution_count": 1_000_000_000,  # 1PB
+        "copy_rate": 23_148,
         "description": "츠메몬이 진화한 성장기 디지몬. 매우 활기찬 성격으로 파괴 행위는 놀이의 일환이라고 생각합니다.",
         "special_move": "찰싹 때리기",
         "image_path": "assets/kuramon.webp",
@@ -91,10 +87,9 @@ STAGE_CONFIG = [
     },
     {
         "stage_idx": 4,
-        "evolution_time": 121000,
-        "evolution_count": 8000000000,
-        "copy_rate": 2.5,  # 1초당 3.5배로 복제
-        "data_rate": 1000, # 1초당 1GB 흡수
+        "evolution_time": 24 * 60 * 60,
+        "evolution_count": 1_000_000_000_000,  # 1EB
+        "copy_rate": 11_574_074,  # 1초당 3.5배로 복제
         "description": "번데기의 모습을 한 성숙기 디지몬. 이동은 전혀 할 수 없지만 단단한 외피로 보호됩니다.",
         "special_move": "데이터 파괴",
         "image_path": "assets/chrysalimon.webp",
@@ -113,10 +108,9 @@ STAGE_CONFIG = [
     },
     {
         "stage_idx": 5,
-        "evolution_time": 266400,
-        "evolution_count": 16000000000,
-        "copy_rate": 3.0,  # 1초당 4배로 복제
-        "data_rate": 10000, # 1초당 10GB 흡수
+        "evolution_time": 48 * 60 * 60,
+        "evolution_count": 1_000_000_000_000_000,  # 1ZB
+        "copy_rate": 578_703_703,
         "description": "손발이 긴 거미의 모습을 한 완전체 디지몬. 강력한 보안과 상관없이 모든 네트워크에 침입할 수 있습니다.",
         "special_move": "네트워크수류탄",
         "image_path": "assets/infermon.webp",
@@ -138,7 +132,6 @@ STAGE_CONFIG = [
         "evolution_time": 600,
         "evolution_count": 0,
         "copy_rate": 0,
-        "data_rate": 0,
         "description": "최종 진화 형태. 전지전능한 존재가 되어 핵 미사일 발사 시스템을 해킹했습니다!",
         "special_move": "캐논발사",
         "image_path": "assets/diablomon.webp",

@@ -1,12 +1,7 @@
 import os
-import json
-import asyncio
 import sqlite3
 import aiosqlite
-import logging
-from pathlib import Path
-from datetime import datetime, timezone
-from typing import Optional, Dict, Any, List, NamedTuple
+from typing import Optional, Dict, Any, List
 from dg01.digimon_data import DigimonDataFields
 from dg01.errors import setup_logger, GameError
 
@@ -77,7 +72,7 @@ class DataManager:
             logger.error(f"데이터베이스 초기화 실패: {e}")
             raise
 
-    async def get_user_data(self, user_id: int) -> Dict[str, Any]:
+    async def get_or_create_user_data(self, user_id: int) -> Dict[str, Any]:
         """
         사용자의 게임 데이터를 불러옵니다.
         
@@ -114,7 +109,16 @@ class DataManager:
                         values
                     )
                     await db.commit()
-                    return user_data
+
+                    async with db.execute(
+                        f'SELECT {", ".join(self.columns)} FROM {self.table_name} WHERE user_id = ?',
+                        (user_id,)
+                    ) as cursor:
+                        row = await cursor.fetchone()
+                        if row is None:
+                            raise GameError("Fail to fetch data.")
+                else:
+                    pass
                 
                 return {
                     self.columns[i]: (
@@ -123,6 +127,99 @@ class DataManager:
                     )
                     for i in range(len(self.columns))
                 }
+                
+            except Exception as e:
+                logger.error(f"데이터 로드 실패 (user_id: {user_id}): {e}")
+                raise
+
+
+    async def create_user_data(self, user_id: int) -> Dict[str, Any]:
+        """
+        사용자의 게임 데이터를 불러옵니다.
+        
+        Args:
+            user_id (int): 사용자 ID
+            
+        Returns:
+            Dict[str, Any]: 사용자 게임 데이터
+        """
+        async with aiosqlite.connect(self.db_path) as db:
+            try:
+                async with db.execute(
+                    f'SELECT {", ".join(self.columns)} FROM {self.table_name} WHERE user_id = ?',
+                    (user_id,)
+                ) as cursor:
+                    row = await cursor.fetchone()
+                
+                assert row is None
+                
+                # 새 사용자 데이터 생성
+                user_data = self.default_user_data.copy()
+                
+                placeholders = ", ".join(["?"] * len(self.columns))
+                values = [
+                    user_id,
+                    *[user_data.get(col) for col in self.columns[1:]]
+                ]
+                
+                await db.execute(
+                    f"""
+                    INSERT INTO {self.table_name} (
+                        {", ".join(self.columns)}
+                    ) VALUES ({placeholders})
+                    """,
+                    values
+                )
+                await db.commit()
+
+                async with db.execute(
+                    f'SELECT {", ".join(self.columns)} FROM {self.table_name} WHERE user_id = ?',
+                    (user_id,)
+                ) as cursor:
+                    row = await cursor.fetchone()
+                    if row is None:
+                        raise GameError("Fail to fetch data.")
+                    
+                return {
+                    self.columns[i]: (
+                        None if row[i] == ''
+                        else row[i]
+                    )
+                    for i in range(len(self.columns))
+                }
+                
+            except Exception as e:
+                logger.error(f"데이터 로드 실패 (user_id: {user_id}): {e}")
+                raise
+
+    async def get_user_data(self, user_id: int) -> Dict[str, Any]:
+        """
+        사용자의 게임 데이터를 불러옵니다.
+        
+        Args:
+            user_id (int): 사용자 ID
+            
+        Returns:
+            Dict[str, Any]: 사용자 게임 데이터
+        """
+        async with aiosqlite.connect(self.db_path) as db:
+            try:
+                async with db.execute(
+                    f'SELECT {", ".join(self.columns)} FROM {self.table_name} WHERE user_id = ?',
+                    (user_id,)
+                ) as cursor:
+                    row = await cursor.fetchone()
+                    
+                if row is None:
+                    return None
+                else:
+                    return {
+                        self.columns[i]: (
+                            None if row[i] == ''
+                            else row[i]
+                        )
+                        for i in range(len(self.columns))
+                    }
                 
             except Exception as e:
                 logger.error(f"데이터 로드 실패 (user_id: {user_id}): {e}")
@@ -142,19 +239,52 @@ class DataManager:
         if not isinstance(data, dict):
             logger.error(f"잘못된 데이터 형식 (user_id: {user_id}): {type(data)}")
             return False
-
+        
         try:
-            update_fields = [f"{col} = :{col}" for col in self.columns if col != 'user_id']
-            update_query = f"""UPDATE user_data SET {', '.join(update_fields)} WHERE user_id = :user_id"""
-            update_params = {**{col: data.get(col) for col in self.columns}, 'user_id': user_id}
+            update_fields = [c for c in self.columns if c in data.keys() and c != "user_id"]
+            if len(update_fields) == 0:
+                return False
+                        
+            update_expr = [f"{col} = :{col}" for col in update_fields]
+            update_data = {k: v for k, v in data.items() if k in update_fields}
+            update_query = f"""UPDATE user_data SET {', '.join(update_expr)} WHERE user_id = :user_id"""
+            update_params = {**{col: update_data.get(col) for col in update_fields}, 'user_id': user_id}
             print(f"{update_query=}")
-            print(f"{update_params=}")
+            print(f"{update_data=}")
             async with aiosqlite.connect(self.db_path) as db:
                 await db.execute(sql=update_query, parameters=update_params)
                 await db.commit()
                 return True
-                
         except Exception as e:
             logger.error(f"데이터 저장 실패 (user_id: {user_id}): {e}")
             return False
 
+
+    async def get_all_user_data(self) -> List[Dict[str, Any]]:
+        """
+        모든 사용자의 게임 데이터를 조회합니다.
+        
+        Returns:
+            List[Dict[str, Any]]: 전체 사용자 게임 데이터 목록
+        """
+        async with aiosqlite.connect(self.db_path) as db:
+            try:
+                async with db.execute(
+                    f'SELECT {", ".join(self.columns)} FROM {self.table_name}'
+                ) as cursor:
+                    rows = await cursor.fetchall()
+                    
+                    return [
+                        {
+                            self.columns[i]: (
+                                None if row[i] == ''
+                                else row[i]
+                            )
+                            for i in range(len(self.columns))
+                        }
+                        for row in rows
+                    ]
+                    
+            except Exception as e:
+                logger.error(f"전체 데이터 로드 실패: {e}")
+                raise

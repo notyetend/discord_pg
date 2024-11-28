@@ -1,128 +1,167 @@
 import pytest
+from unittest.mock import Mock, AsyncMock, patch
 import asyncio
-from unittest.mock import MagicMock
-
 from dg01.game_session import GameSession
 from dg01.event_bus import EventBus
-from dg01.const import GameState, create_game_event, GameEvent, GameEventData, GameEventType
+from dg01.game_events import (
+    GameState,
+    EventType,
+    EventGameStarted,
+    EventError,
+    EventGameCleanup
+)
 from dg01.errors import GameError
-from dg01.digimon_logic import DigimonLogic
+from dg01.data_manager import DataManager
 
 
-class TestGameSession:
-    @pytest.fixture
-    def user_id(self):
-        return 111
+@pytest.fixture
+def event_bus():
+    """이벤트 버스 fixture"""
+    bus = EventBus()
+    bus.publish = AsyncMock()
+    return bus
+
+@pytest.fixture
+def game_session(event_bus):
+    """게임 세션 fixture"""
+    session = GameSession(
+        user_id=12345,
+        channel_id=67890,
+        event_bus=event_bus,
+        data_manager=DataManager()
+    )
+    session.data_manager.get_or_create_user_data = AsyncMock()
+    session.data_manager.update_user_data = AsyncMock()
+    return session
+
+@pytest.mark.asyncio
+async def test_game_session_initialization(game_session):
+    """게임 세션 초기화 테스트"""
+    assert game_session.user_id == 12345
+    assert game_session.channel_id == 67890
+    assert game_session.state == GameState.WAITING
+    assert game_session.tick_rate == 1.0
+    assert game_session.message_id is None
+
+@pytest.mark.asyncio
+async def test_start_game(game_session):
+    """게임 시작 테스트"""
+    await game_session.start_game()
     
-    @pytest.fixture
-    def channel_id(self):
-        return 222
+    assert game_session.state == GameState.PLAYING
+    assert hasattr(game_session, 'last_update')
+    assert hasattr(game_session, 'update_task')
     
-    @pytest.fixture
-    def event_bus(self):
-        return EventBus()
+    # GameStarted 이벤트가 발행되었는지 확인
+    game_session.event_bus.publish.assert_called_once()
+    event = game_session.event_bus.publish.call_args[0][0]
+    assert isinstance(event, EventGameStarted)
+    assert event.user_id == game_session.user_id
+    assert event.channel_id == game_session.channel_id
 
-    @pytest.fixture
-    def game_session(self, user_id, channel_id, event_bus):
-        game_session = GameSession(user_id, channel_id, event_bus)
-        game_session.game_logic = MagicMock()
-        game_session.game_logic.update.return_value = ['=== dummy_event ===']
-        game_session.tick_rate = 10
-        game_session.message_id = None
-        return game_session
+@pytest.mark.asyncio
+async def test_start_game_already_started(game_session):
+    """이미 시작된 게임 시작 시도 테스트"""
+    game_session.state = GameState.PLAYING
     
-    def test_create_game_logic(self, game_session):
-        assert isinstance(game_session.game_logic, DigimonLogic)
-
-    @pytest.mark.asyncio
-    async def test_start_game__case_error(self, game_session):
-        game_session.state = GameState.STARTING
-        with pytest.raises(GameError) as exc_info:
-            await game_session.start_game()
-
-        # assert str(exc_info.value) == "Game already started"
-
-    @pytest.mark.asyncio
-    async def test_start_game__case_normal(self, user_id, channel_id, game_session, event_bus, capsys):
-        test_callback_output = "=== Callback called - {callback_arg} ==="
-        async def test_callback(callback_arg):
-            await asyncio.sleep(1)
-            print(test_callback_output.format(callback_arg=callback_arg))
-            
-        assert game_session.state == GameState.WAITING
-
-        game_event = create_game_event(
-            event_type=GameEventType.GAME_STARTED,
-            user_id=user_id,
-            channel_id=channel_id
-        )
-        event_bus.subscribe(game_event.type, test_callback)
+    with pytest.raises(GameError, match="Game already started"):
         await game_session.start_game()
 
-        assert game_session.game_logic.update.called
-        print(f"\n=== {game_session.game_logic.update.call_count=} ===")
+@pytest.mark.asyncio
+async def test_update_loop_basic_functionality(game_session):
+    """업데이트 루프 기본 기능 테스트"""
+    # 게임 로직 모의
+    mock_events = [Mock(type=EventType.UPDATE_PLAYER, data={"user_id": 12345})]
+    game_session.game_logic.update = Mock(return_value=mock_events)
+    
+    # 게임 시작
+    await game_session.start_game()
+    
+    # 한 틱 실행
+    await asyncio.sleep(1.1)
+    
+    # 업데이트가 실행되었는지 확인
+    assert game_session.game_logic.update.called
+    assert game_session.data_manager.get_or_create_user_data.called
 
-        # captured = capsys.readouterr()  # 출력물을 캡쳐한다.
-        # assert captured.out[:-1] == test_callback_output.format(callback_arg=game_event.data.__repr__())
-        # captured.out의 마지막에 \n 이 자동추가되어 제거
+    # 정리
+    await game_session.cleanup()
 
-    @pytest.mark.asyncio
-    async def test_update_loop__case_cancelled(self, game_session):
-        game_session.state = GameState.CANCELLED
-        await game_session.update_loop()
+@pytest.mark.asyncio
+async def test_cleanup(game_session):
+    """게임 세션 정리 테스트"""
+    # 게임 시작
+    await game_session.start_game()
+    
+    # 정리 실행
+    await game_session.cleanup()
+    
+    assert game_session.state == GameState.FINISHED
+    assert not game_session.update_task or game_session.update_task.done()
+    
+    # GameCleanup 이벤트가 발행되었는지 확인
+    cleanup_event_call = [
+        call for call in game_session.event_bus.publish.call_args_list 
+        if isinstance(call[0][0], EventGameCleanup)
+    ]
+    assert len(cleanup_event_call) == 1
 
-    @pytest.mark.asyncio
-    async def test_update_loop__case_playing(self, game_session):
-        assert game_session.state == GameState.WAITING
+@pytest.mark.asyncio
+async def test_handle_error_game_error(game_session):
+    """GameError 처리 테스트"""
+    game_session.state = GameState.PLAYING
+    error = GameError("Test game error")
+    
+    await game_session.handle_error(error)
+    
+    assert game_session.state == GameState.PAUSED
+    
+    # 에러 이벤트가 발행되었는지 확인
+    error_event_call = [
+        call for call in game_session.event_bus.publish.call_args_list 
+        if isinstance(call[0][0], EventError)
+    ]
+    assert len(error_event_call) == 1
+    error_event = error_event_call[0][0][0]
+    assert error_event.severity == 'error'
 
-        # start_game을 통해 게임 시작
-        await game_session.start_game()
+@pytest.mark.asyncio
+async def test_handle_error_unknown_error(game_session):
+    """알 수 없는 에러 처리 테스트"""
+    game_session.state = GameState.PLAYING
+    error = Exception("Unknown error")
+    
+    await game_session.handle_error(error)
+    
+    assert game_session.state == GameState.ERROR
+    
+    # 에러 이벤트가 발행되었는지 확인
+    error_event_call = [
+        call for call in game_session.event_bus.publish.call_args_list 
+        if isinstance(call[0][0], EventError)
+    ]
+    assert len(error_event_call) == 1
+    error_event = error_event_call[0][0][0]
+    assert error_event.severity == 'unknown'
 
-        # 3초 후에 게임 상태를 FINISHED로 변경하는 태스크 생성
-        async def change_state_after_delay():
-            await asyncio.sleep(0.3)
-            game_session.state = GameState.FINISHED
-
-        await change_state_after_delay()
-
-        assert game_session.game_logic.update.called
-        print(f"\n=== {game_session.game_logic.update.call_count=} ===")
-        assert game_session.state == GameState.FINISHED
-
-    @pytest.mark.asyncio
-    async def test_update_loop__case_error(self, game_session):
-        """
-        에러가 발생하면 state값이 ERROR로 바뀌면서
-        while self.state == GameState.PLAYING: 때문에 루프를 나가게 된다.
-        """
-        game_session.game_logic = MagicMock()
-        game_session.game_logic.update.side_effect = Exception("Error")
-        game_session.tick_rate = 10
-        game_session.message_id = None
-
-        # start_game을 통해 게임 시작
-        await game_session.start_game()
-
-        # 3초 후에 게임 상태를 FINISHED로 변경하는 태스크 생성
-        async def change_state_after_delay():
-            await asyncio.sleep(0.3)
-            game_session.state = GameState.FINISHED
-
-        await change_state_after_delay()
-
-        assert game_session.game_logic.update.called
-        print(f"\n=== {game_session.game_logic.update.call_count=} ===")
-        assert game_session.state == GameState.FINISHED
-
-    @pytest.mark.asyncio
-    async def test_cleanup(self, game_session):
-        assert game_session.state == GameState.WAITING
-        game_session.game_logic = MagicMock()
-        game_session.game_logic.update.return_value = ['=== dummy_event ===']
-        game_session.tick_rate = 10
-        game_session.message_id = None
-
-        # start_game을 통해 게임 시작
-        await game_session.start_game()
-
-        
+@pytest.mark.asyncio
+async def test_update_loop_error_handling(game_session):
+    """업데이트 루프 에러 처리 테스트"""
+    # 게임 로직이 예외를 발생시키도록 설정
+    game_session.game_logic.update = Mock(side_effect=Exception("Test error"))
+    
+    # 게임 시작
+    await game_session.start_game()
+    
+    # 에러가 발생할 때까지 대기
+    await asyncio.sleep(1.1)
+    
+    # 게임이 에러 상태가 되었는지 확인
+    assert game_session.state == GameState.ERROR
+    
+    # 에러 이벤트가 발행되었는지 확인
+    error_event_calls = [
+        call for call in game_session.event_bus.publish.call_args_list 
+        if isinstance(call[0][0], EventError)
+    ]
+    assert len(error_event_calls) > 0

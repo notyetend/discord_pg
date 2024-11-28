@@ -1,10 +1,11 @@
 import os
-
+from datetime import datetime, timezone, timedelta
 import discord
 from discord.ext import commands
 
 from dg01.errors import GameError
 from dg01.digimon_config import get_stage_config, EVOLUTION_ORDER, STAGES
+from dg01.game_events import EventType
 
 
 class GameCommandsCog(commands.Cog):
@@ -15,11 +16,13 @@ class GameCommandsCog(commands.Cog):
     async def start(self, ctx: commands.Context):
         """게임 시작 명령어"""
         try:
-            success_ss = await self.bot.game_manager.create_game(ctx.author.id, ctx.channel.id)
-            if success_ss:
+            start_event = await self.bot.game_manager.start_session(ctx.author.id, ctx.channel.id)
+            if start_event == EventType.CREATE_PLAYER:
                 await ctx.send(f"짜잔! {ctx.author.name}의 디지타마가 태어났어! 🥚✨")
-            else:
+            elif start_event == EventType.GAME_STARTED:
                 await ctx.send(f"어라? {ctx.author.name} 지금 이미 디지타마를 돌보고 있잖아요! 🥚")
+            else:
+                raise GameError("oh?")
         except ValueError:
             raise GameError("oh?")
     
@@ -27,11 +30,11 @@ class GameCommandsCog(commands.Cog):
     async def first_evolve(self, ctx: commands.Context):
         """첫 진화 명령어"""
         try:
-            player_data = await self.bot.data_manager.get_user_data(ctx.author.id)
+            player_data = await self.bot.game_manager.data_manager.get_or_create_user_data(ctx.author.id)
             if player_data["stage_idx"] == min(STAGES.keys()):
                 player_data["stage_idx"] += 1
                 print(f"{player_data=}")
-                success = await self.bot.data_manager.update_user_data(ctx.author.id, player_data)
+                success = await self.bot.game_manager.data_manager.update_user_data(ctx.author.id, player_data)
                 # success = 1
                 if success:
                     await ctx.send(f"짜잔! {ctx.author.name}의 디지타마가 부화했습니다! 🥚✨")
@@ -46,7 +49,7 @@ class GameCommandsCog(commands.Cog):
     @commands.command(name="현황")
     async def status(self, ctx: commands.Context):
         """현재 디지몬의 상태를 확인합니다."""
-        player_data = await self.bot.data_manager.get_user_data(ctx.author.id)
+        player_data = await self.bot.game_manager.data_manager.get_or_create_user_data(ctx.author.id)
         print(f"=== {player_data} ===")
         
         if player_data is None:
@@ -79,7 +82,7 @@ class GameCommandsCog(commands.Cog):
             name="📊 현재 상태",
             value=f"```"
                   f"현재 개체 수: {player_data['count']:,} 개체\n"
-                  f"흡수한 데이터: {player_data['data_absorbed'] / 1024:.1f} GB\n"
+                  f"흡수한 데이터: {player_data['count'] / 1024:.1f} GB\n"
                   f"전적: {player_data['battles_won']}승 {player_data['battles_lost']}패"
                   f"```",
             inline=False
@@ -119,10 +122,12 @@ class GameCommandsCog(commands.Cog):
 
     @commands.command(name="응원")
     async def cheer(self, ctx):
+        await self.bot.game_manager.data_manager.update_user_data(user_id=ctx.author.id, data={"last_cheer": (datetime.now(timezone.utc) + timedelta(hours=9)).isoformat()})
         await ctx.send('응원 응원')
 
     @commands.command(name="치료")
     async def cure(self, ctx):
+        await self.bot.game_manager.data_manager.update_user_data(user_id=ctx.author.id, data={"is_copying": 1, "channel_id": ctx.channel.id})
         await ctx.send('치료 치료')
 
     @commands.command(name='방생')
@@ -181,7 +186,7 @@ class GameCommandsCog(commands.Cog):
             name="📊 현재 상태",
             value=f"```"
                   f"현재 개체 수: {player_data['count']:,} 개체\n"
-                  f"흡수한 데이터: {player_data['data_absorbed'] / 1024:.1f} GB\n"
+                  f"흡수한 데이터: {player_data['count'] / 1024:.1f} GB\n"
                   f"전적: {player_data['battles_won']}승 {player_data['battles_lost']}패"
                   f"```",
             inline=False

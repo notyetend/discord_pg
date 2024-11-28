@@ -1,13 +1,12 @@
 from datetime import datetime
 from datetime import datetime, timedelta
-from dg00.config.config import GAME_CONFIG
+from dg00.config.config import GAME_CONFIG, ConfigLoader
 from dg00.config.config import GAME_CONFIG, get_next_stage, get_stage_config, get_random_message
 from dg00.game.battle import BattleSystem
 from dg00.game.digimon import DigimonGame
 from dg00.game.evolution import EvolutionSystem
 from dg00.message.bot import DigimonDiscordBot
 from dg00.message.command import GameCommands
-from dg00.utils.config_loader import ConfigLoader
 from dg00.utils.data_manager import DataManager
 from discord.ext import commands
 from discord.ext import commands, tasks
@@ -20,11 +19,15 @@ import os
 import random
 import sys
 
-# Generated on 2024-11-20 12:09:17
+# Generated on 2024-11-28 22:55:52
 
 # ===== __init__.py =====
 
 # ===== config.py =====
+import json
+from pathlib import Path
+
+
 GAME_CONFIG = {
     "stages": {
         "디지타마": {
@@ -211,6 +214,48 @@ def get_random_message(stage: str) -> str:
 def get_evolution_quiz(stage: str) -> dict:
     """특정 스테이지의 진화 퀴즈를 반환"""
     return GAME_CONFIG["evolution_quiz"].get(stage)
+
+
+
+class ConfigLoader:
+    @staticmethod
+    def load_token() -> str:
+        """Discord 봇 토큰을 로드합니다."""
+        try:
+            with open(f"{str(Path.home())}/.discord/token.json", 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                if 'discord_token' not in data:
+                    raise KeyError("token.json 파일에 'discord_token' 키가 없습니다.")
+                return data['discord_token']
+        except FileNotFoundError:
+            raise FileNotFoundError(
+                "token.json 파일을 찾을 수 없습니다.\n"
+                "config/token.json 파일을 다음과 같이 생성해주세요:\n"
+                '{\n    "discord_token": "YOUR_BOT_TOKEN"\n}'
+            )
+        except json.JSONDecodeError:
+            raise ValueError("token.json 파일의 JSON 형식이 올바르지 않습니다.")
+
+    @staticmethod
+    def get_config() -> dict:
+        """게임 설정을 반환합니다."""
+        return GAME_CONFIG
+
+    @staticmethod
+    def get_stage_config(stage: str) -> dict:
+        """특정 스테이지의 설정을 반환합니다."""
+        return GAME_CONFIG['stages'].get(stage)
+
+    @staticmethod
+    def get_battle_settings() -> dict:
+        """전투 관련 설정을 반환합니다."""
+        return GAME_CONFIG['battle_settings']
+
+    @staticmethod
+    def get_events_config() -> dict:
+        """이벤트 관련 설정을 반환합니다."""
+        return GAME_CONFIG['events']
+
 # ===== __init__.py =====
 
 # ===== battle.py =====
@@ -492,8 +537,7 @@ class EvolutionSystem:
 import discord
 import sys
 
-from dg00.utils.config_loader import ConfigLoader
-from dg00.config.config import GAME_CONFIG
+from dg00.config.config import GAME_CONFIG, ConfigLoader
 from dg00.message.bot import DigimonDiscordBot
 
 
@@ -863,51 +907,6 @@ class GameCommands(commands.Cog):
             await ctx.send("예기치 않은 오류가 발생했습니다. 나중에 다시 시도해주세요.")
 # ===== __init__.py =====
 
-# ===== config_loader.py =====
-import json
-from pathlib import Path
-from dg00.config.config import GAME_CONFIG
-
-
-class ConfigLoader:
-    @staticmethod
-    def load_token() -> str:
-        """Discord 봇 토큰을 로드합니다."""
-        try:
-            with open(f"{str(Path.home())}/.discord/token.json", 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                if 'discord_token' not in data:
-                    raise KeyError("token.json 파일에 'discord_token' 키가 없습니다.")
-                return data['discord_token']
-        except FileNotFoundError:
-            raise FileNotFoundError(
-                "token.json 파일을 찾을 수 없습니다.\n"
-                "config/token.json 파일을 다음과 같이 생성해주세요:\n"
-                '{\n    "discord_token": "YOUR_BOT_TOKEN"\n}'
-            )
-        except json.JSONDecodeError:
-            raise ValueError("token.json 파일의 JSON 형식이 올바르지 않습니다.")
-
-    @staticmethod
-    def get_config() -> dict:
-        """게임 설정을 반환합니다."""
-        return GAME_CONFIG
-
-    @staticmethod
-    def get_stage_config(stage: str) -> dict:
-        """특정 스테이지의 설정을 반환합니다."""
-        return GAME_CONFIG['stages'].get(stage)
-
-    @staticmethod
-    def get_battle_settings() -> dict:
-        """전투 관련 설정을 반환합니다."""
-        return GAME_CONFIG['battle_settings']
-
-    @staticmethod
-    def get_events_config() -> dict:
-        """이벤트 관련 설정을 반환합니다."""
-        return GAME_CONFIG['events']
-    
 # ===== data_manager.py =====
 import json
 import os

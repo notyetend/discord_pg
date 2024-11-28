@@ -17,12 +17,11 @@ class GameBot(commands.Bot):
         intents = discord.Intents.default()
         intents.message_content = True
         super().__init__(command_prefix="!", intents=intents)
-
         self.game_manager = GameManager(self)
-        self.data_manager = self.game_manager.data_manager
-            
+
     async def setup_hook(self):
         await self.add_cog(GameCommandsCog(self))
+        await self.game_manager.restore_sessions()
 
     async def on_command_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
