@@ -3,9 +3,12 @@ from datetime import datetime, timezone, timedelta
 import discord
 from discord.ext import commands
 
-from dg01.errors import GameError
-from dg01.digimon_config import get_stage_config, EVOLUTION_ORDER, STAGES
+from dg01.errors import setup_logger, GameError
+from dg01.digimon_config import get_stage_config, STAGES
 from dg01.game_events import EventType
+
+
+logger = setup_logger(__name__)
 
 
 class GameCommandsCog(commands.Cog):
