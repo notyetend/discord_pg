@@ -35,7 +35,7 @@ class GameManager(commands.Cog):
         self.event_bus = EventBus()
         self.sessions: Dict[int, GameSession] = {}  # user_id: GameSession
 
-        self.quiz_handler = QuizHandler(self.bot)
+        self.quiz_handler = QuizHandler(self.bot, self)
         self.battle_handler = BattleHandler(self.bot)
 
         self.setup_event_handlers()
@@ -124,24 +124,6 @@ class GameManager(commands.Cog):
 
         except Exception as e:
             logger.error(f"Error handling quiz timeout for user {user_id}: {e}")
-
-    async def handle_quiz_message(self, message: discord.Message):
-        """사용자 메시지를 처리하여 퀴즈 답변을 확인합니다."""
-        result = await self.quiz_handler.check_answer(
-            user_id=message.author.id,
-            channel_id=message.channel.id,
-            answer=message.content
-        )
-        
-        if result is not None:  # 퀴즈 답변이 맞았다면
-            session = await self.get_session(
-                user_id=message.author.id,
-                channel_id=message.channel.id
-            )
-            if result:
-                session.digimon.mark_quiz_passed()
-            else:
-                session.digimon.mark_quiz_failed()
     # Quiz handles end
 
     # Battle handles start

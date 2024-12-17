@@ -13,7 +13,9 @@ logger = setup_logger(__name__)
 
 class BattleView:
     """전투 관련 출력을 담당하는 클래스"""
-    
+    def __init__(self, switch=1):
+        self.switch = switch
+
     async def send_battle_win(self, channel: discord.TextChannel, user_id: int, battles_won: int, battles_lost: int) -> None:
         """전투 승리 메시지 전송"""
         embed = discord.Embed(
@@ -28,7 +30,8 @@ class BattleView:
             inline=False
         )
         
-        await channel.send(embed=embed)
+        if self.switch:
+            await channel.send(embed=embed)
 
     async def send_battle_item_get(self, channel: discord.TextChannel, user_id: int, item_id: int) -> None:
         """전투 아이템 획득 메시지 전송"""
@@ -51,7 +54,8 @@ class BattleView:
             inline=False
         )
         
-        await channel.send(embed=embed)
+        if self.switch:
+            await channel.send(embed=embed)
 
     async def send_battle_lose(self, channel: discord.TextChannel, user_id: int, 
                              count_lost: int, battles_won: int, battles_lost: int, 
@@ -75,7 +79,8 @@ class BattleView:
             inline=False
         )
 
-        await channel.send(embed=embed)
+        if self.switch:
+            await channel.send(embed=embed)
 
 
 class BattleHandler:
@@ -83,7 +88,7 @@ class BattleHandler:
     
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.view = BattleView()
+        self.view = BattleView(switch=1)
     
     async def handle_battle_win(self, event: EventBattleWin, battles_won: int, battles_lost: int) -> None:
         """전투 승리 처리"""

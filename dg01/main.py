@@ -34,7 +34,7 @@ class GameBot(commands.Bot):
         if message.author.bot:
             return
 
-        await self.game_manager.handle_quiz_message(message)
+        # await self.game_manager.handle_quiz_message(message)
         await self.process_commands(message)
 
 
@@ -62,6 +62,7 @@ if __name__ == "__main__":
 
     bot = GameBot()
 
+    """
     @bot.event
     async def on_message(message):
         if message.author.bot:
@@ -69,5 +70,5 @@ if __name__ == "__main__":
         
         await bot.game_manager.handle_quiz_message(message)
         await bot.process_commands(message)
-        
+    """
     bot.run(token)

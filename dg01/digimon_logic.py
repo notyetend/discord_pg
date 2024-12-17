@@ -76,6 +76,20 @@ class DigimonLogic(DigimonDataFields):
         if self.stage_idx == max(STAGES.keys()):
             return None
         
+        if self.count >= STAGE_CONFIG[self.stage_idx]["evolution_count"] and self.quiz_published == 0:
+            self.quiz_pass_needed = 1
+            self.quiz_published == 1
+            self.is_copying = 0
+            self.quiz_question, self.quiz_answer = _get_random_quiz()
+            self.quiz_published = 1
+            return [EventQuizPassNeeded(
+                user_id=self.user_id,
+                channel_id=self.channel_id,
+                quiz_question=self.quiz_question,
+                quiz_answer=self.quiz_answer
+            )]
+
+        """
         if self.is_copying == 1 and self.count >= STAGE_CONFIG[self.stage_idx]["evolution_count"]:
             self.quiz_pass_needed = 1
             self.is_copying = 0
@@ -92,7 +106,7 @@ class DigimonLogic(DigimonDataFields):
                 )]
         else:
             return None
-        
+        """
         
     def start_copying(self):
         if self.quiz_pass_needed == 1:
@@ -110,6 +124,7 @@ class DigimonLogic(DigimonDataFields):
 
     def mark_quiz_passed(self):
         self.quiz_pass_needed = 0
+        self.quiz_published = 0
         self.quiz_question = ""
         self.quiz_answer = ""
         self.is_copying = 1

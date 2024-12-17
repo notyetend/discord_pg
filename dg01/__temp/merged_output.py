@@ -5,17 +5,19 @@ from dataclasses import field
 from datetime import datetime, timedelta
 from datetime import datetime, timedelta, timezone
 from dg01.data_manager import DataManager
+from dg01.digimon_battle import BattleHandler
 from dg01.digimon_config import STAGES, STAGE_CONFIG, get_next_stage_idx, get_battle_chance, get_config_val
 from dg01.digimon_config import STAGES, get_stage_config
 from dg01.digimon_config import get_stage_config
 from dg01.digimon_data import DigimonDataFields
 from dg01.digimon_logic import DigimonLogic, STAGES
-from dg01.digimon_quiz import QuizHandler, QuizView
+from dg01.digimon_quiz import QuizHandler
 from dg01.errors import setup_logger
 from dg01.errors import setup_logger, GameError
 from dg01.event_bus import EventBus
 from dg01.game_events import EventType, EventBase
 from dg01.game_events import EventType, EventBase, EventQuizPassNeeded, EventBattleWin, EventBattleLose, EventBattleItemGet, EventUpdateDashboard
+from dg01.game_events import EventType, EventBattleWin, EventBattleLose, EventBattleItemGet
 from dg01.game_events import EventType, EventQuizPassNeeded, EventBattleWin, EventBattleLose, EventBattleItemGet
 from dg01.game_events import GameState
 from dg01.game_events import GameState, EventType, EventBase, EventUpdateDashboard
@@ -52,7 +54,7 @@ import sqlite3
 import sys
 import traceback
 
-# Generated on 2024-12-03 13:03:05
+# Generated on 2024-12-03 20:50:09
 
 # ===== data_manager.py =====
 import os
@@ -346,6 +348,143 @@ class DataManager:
                 logger.error(f"전체 데이터 로드 실패: {e}")
                 raise
 
+# ===== digimon_battle.py =====
+from dataclasses import dataclass
+from typing import Optional
+import random
+import discord
+from discord.ext import commands
+
+from dg01.errors import setup_logger
+from dg01.game_events import EventType, EventBattleWin, EventBattleLose, EventBattleItemGet
+
+
+logger = setup_logger(__name__)
+
+
+class BattleView:
+    """전투 관련 출력을 담당하는 클래스"""
+    def __init__(self, switch=1):
+        self.switch = switch
+
+    async def send_battle_win(self, channel: discord.TextChannel, user_id: int, battles_won: int, battles_lost: int) -> None:
+        """전투 승리 메시지 전송"""
+        embed = discord.Embed(
+            title="⚔️ 전투 승리!",
+            description="전투에서 승리했습니다!",
+            color=discord.Color.green()
+        )
+        
+        embed.add_field(
+            name="📊 전투 기록",
+            value=f"총 전적: {battles_won}승 {battles_lost}패",
+            inline=False
+        )
+        
+        if self.switch:
+            await channel.send(embed=embed)
+
+    async def send_battle_item_get(self, channel: discord.TextChannel, user_id: int, item_id: int) -> None:
+        """전투 아이템 획득 메시지 전송"""
+        embed = discord.Embed(
+            title="🎁 아이템 획득!",
+            description="전투 승리로 특별한 아이템을 획득했습니다!",
+            color=discord.Color.gold()
+        )
+        
+        item_descriptions = {
+            1: "강화된 방어구",
+            2: "공격력 증가 아이템",
+            3: "회복 아이템"
+        }
+        
+        item_description = item_descriptions.get(item_id, "알 수 없는 아이템")
+        embed.add_field(
+            name="획득한 아이템",
+            value=item_description,
+            inline=False
+        )
+        
+        if self.switch:
+            await channel.send(embed=embed)
+
+    async def send_battle_lose(self, channel: discord.TextChannel, user_id: int, 
+                             count_lost: int, battles_won: int, battles_lost: int, 
+                             remaining_count: int) -> None:
+        """전투 패배 메시지 전송"""
+        embed = discord.Embed(
+            title="💔 전투 패배",
+            description=f"전투에서 패배했습니다... {count_lost:,} 개체를 잃었습니다.\n!치료 해주세요.",
+            color=discord.Color.red()
+        )
+
+        embed.add_field(
+            name="📊 전투 기록",
+            value=f"총 전적: {battles_won}승 {battles_lost}패",
+            inline=False
+        )
+        
+        embed.add_field(
+            name="💪 현재 상태",
+            value=f"남은 개체 수: {remaining_count:,}",
+            inline=False
+        )
+
+        if self.switch:
+            await channel.send(embed=embed)
+
+
+class BattleHandler:
+    """전투 관련 로직을 처리하는 클래스"""
+    
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
+        self.view = BattleView(switch=1)
+    
+    async def handle_battle_win(self, event: EventBattleWin, battles_won: int, battles_lost: int) -> None:
+        """전투 승리 처리"""
+        channel = self.bot.get_channel(event.channel_id)
+        if not channel:
+            logger.error(f"Channel {event.channel_id} not found for battle win event")
+            return
+
+        await self.view.send_battle_win(
+            channel=channel,
+            user_id=event.user_id,
+            battles_won=battles_won,
+            battles_lost=battles_lost
+        )
+
+    async def handle_battle_item_get(self, event: EventBattleItemGet) -> None:
+        """전투 아이템 획득 처리"""
+        channel = self.bot.get_channel(event.channel_id)
+        if not channel:
+            logger.error(f"Channel {event.channel_id} not found for battle item event")
+            return
+
+        await self.view.send_battle_item_get(
+            channel=channel,
+            user_id=event.user_id,
+            item_id=event.obtained_item_id
+        )
+
+    async def handle_battle_lose(self, event: EventBattleLose, 
+                               battles_won: int, battles_lost: int, 
+                               remaining_count: int) -> None:
+        """전투 패배 처리"""
+        channel = self.bot.get_channel(event.channel_id)
+        if not channel:
+            logger.error(f"Channel {event.channel_id} not found for battle lose event")
+            return
+
+        await self.view.send_battle_lose(
+            channel=channel,
+            user_id=event.user_id,
+            count_lost=event.count_lost,
+            battles_won=battles_won,
+            battles_lost=battles_lost,
+            remaining_count=remaining_count
+        )
 # ===== digimon_config.py =====
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, List, NamedTuple
@@ -519,6 +658,20 @@ class DigimonLogic(DigimonDataFields):
         if self.stage_idx == max(STAGES.keys()):
             return None
         
+        if self.count >= STAGE_CONFIG[self.stage_idx]["evolution_count"] and self.quiz_published == 0:
+            self.quiz_pass_needed = 1
+            self.quiz_published == 1
+            self.is_copying = 0
+            self.quiz_question, self.quiz_answer = _get_random_quiz()
+            self.quiz_published = 1
+            return [EventQuizPassNeeded(
+                user_id=self.user_id,
+                channel_id=self.channel_id,
+                quiz_question=self.quiz_question,
+                quiz_answer=self.quiz_answer
+            )]
+
+        """
         if self.is_copying == 1 and self.count >= STAGE_CONFIG[self.stage_idx]["evolution_count"]:
             self.quiz_pass_needed = 1
             self.is_copying = 0
@@ -535,7 +688,7 @@ class DigimonLogic(DigimonDataFields):
                 )]
         else:
             return None
-        
+        """
         
     def start_copying(self):
         if self.quiz_pass_needed == 1:
@@ -1047,7 +1200,8 @@ from dg01.game_events import (
 )
 from dg01.game_events import GameState
 from dg01.data_manager import DataManager
-from dg01.digimon_quiz import QuizHandler, QuizView
+from dg01.digimon_quiz import QuizHandler
+from dg01.digimon_battle import BattleHandler
 
 
 logger = setup_logger(__name__)
@@ -1060,8 +1214,8 @@ class GameManager(commands.Cog):
         self.event_bus = EventBus()
         self.sessions: Dict[int, GameSession] = {}  # user_id: GameSession
 
-        self.active_quizzes: Dict[int, Dict] = {}  # user_id: quiz_info
         self.quiz_handler = QuizHandler(self.bot)
+        self.battle_handler = BattleHandler(self.bot)
 
         self.setup_event_handlers()
 
@@ -1167,100 +1321,42 @@ class GameManager(commands.Cog):
                 session.digimon.mark_quiz_passed()
             else:
                 session.digimon.mark_quiz_failed()
-    # <-- quiz handles
+    # Quiz handles end
 
+    # Battle handles start
     async def handle_battle_win(self, event: EventBattleWin):
-        """
-        Handle battle win events by sending a victory message to the channel.
-        """
-        channel = self.bot.get_channel(event.channel_id)
-        if not channel:
-            logger.error(f"Channel {event.channel_id} not found for battle win event")
+        """전투 승리 이벤트 처리"""
+        session = self.sessions.get(event.user_id)
+        if not session:
+            logger.error(f"No session found for user {event.user_id}")
             return
 
-        # Create victory embed
-        embed = discord.Embed(
-            title="⚔️ 전투 승리!",
-            description="전투에서 승리했습니다!",
-            color=discord.Color.green()
+        await self.battle_handler.handle_battle_win(
+            event=event,
+            battles_won=session.digimon.battles_won,
+            battles_lost=session.digimon.battles_lost
         )
-
-        session = self.sessions.get(event.user_id)
-        if session and session.digimon:
-            embed.add_field(
-                name="📊 전투 기록", 
-                value=f"총 전적: {session.digimon.battles_won}승 {session.digimon.battles_lost}패",
-                inline=False
-            )
-
-        await channel.send(embed=embed)
 
     async def handle_battle_item_get(self, event: EventBattleItemGet):
-        """
-        Handle events where items are obtained after battle victories.
-        """
-        channel = self.bot.get_channel(event.channel_id)
-        if not channel:
-            logger.error(f"Channel {event.channel_id} not found for battle item event")
-            return
-
-        # Create item obtained embed
-        embed = discord.Embed(
-            title="🎁 아이템 획득!",
-            description="전투 승리로 특별한 아이템을 획득했습니다!",
-            color=discord.Color.gold()
-        )
-        
-        # Add item details based on obtained_item_id
-        item_descriptions = {
-            1: "강화된 방어구",
-            2: "공격력 증가 아이템",
-            3: "회복 아이템"
-            # Add more items as needed
-        }
-        
-        item_description = item_descriptions.get(
-            event.obtained_item_id,
-            "알 수 없는 아이템"
-        )
-        embed.add_field(
-            name="획득한 아이템",
-            value=item_description,
-            inline=False
-        )
-
-        await channel.send(embed=embed)
+        """전투 아이템 획득 이벤트 처리"""
+        await self.battle_handler.handle_battle_item_get(event)
 
     async def handle_battle_lose(self, event: EventBattleLose):
-        """
-        Handle battle loss events by sending a defeat message and showing lost resources.
-        """
-        channel = self.bot.get_channel(event.channel_id)
-        if not channel:
-            logger.error(f"Channel {event.channel_id} not found for battle lose event")
+        """전투 패배 이벤트 처리"""
+        session = self.sessions.get(event.user_id)
+        if not session:
+            logger.error(f"No session found for user {event.user_id}")
             return
 
-        # Create defeat embed
-        embed = discord.Embed(
-            title="💔 전투 패배",
-            description=f"전투에서 패배했습니다... {event.count_lost:,} 개체를 잃었습니다.\n!치료 해주세요.",
-            color=discord.Color.red()
+        await self.battle_handler.handle_battle_lose(
+            event=event,
+            battles_won=session.digimon.battles_won,
+            battles_lost=session.digimon.battles_lost,
+            remaining_count=session.digimon.count
         )
+        
+    # Battle handles end
 
-        session = self.sessions.get(event.user_id)
-        if session and session.digimon:
-            embed.add_field(
-                name="📊 전투 기록",
-                value=f"총 전적: {session.digimon.battles_won}승 {session.digimon.battles_lost}패",
-                inline=False
-            )
-            embed.add_field(
-                name="💪 현재 상태",
-                value=f"남은 개체 수: {session.digimon.count:,}",
-                inline=False
-            )
-
-        await channel.send(embed=embed)
  
     async def handle_update_dashboard(self, event: EventUpdateDashboard, update_img=False):
         """Update the existing dashboard message with new data"""
